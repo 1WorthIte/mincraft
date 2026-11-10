@@ -1,0 +1,513 @@
+`default_nettype none                     // every signal must be declared (catches typos)
+
+/*  Mincraft v1 - built on the course examples display_mif and object_pro.
+ *  1. The VGA adapter loads background.mif into video memory (from display_mif).
+ *  2. Module "world" copies 32x32 block textures (grass/dirt/stone) into video memory,
+ *     one tile at a time, using the same counter + FSM pattern as object_pro's "object".
+ *  3. Module "steve" is object_pro's "object", changed to a 32x64 sprite with 5 poses.
+ *     Keys: A = walk left, D = walk right, F = hit. Releasing a key = stand (side pose).
+ *  KEY[0] = reset. HEX1-0 show the last PS/2 scancode. LEDR[8] = world finished drawing.
+ */
+module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX2, HEX1, HEX0,
+                VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK);
+
+    parameter nX = 10;                    // bits for an x coordinate (0..639 needs 10 bits)
+    parameter nY = 9;                     // bits for a y coordinate (0..479 needs 9 bits)
+    parameter COLOR_DEPTH = 9;            // 9-bit color: 3 bits each of R, G, B
+
+    parameter A = 2'b00, B = 2'b01, C = 2'b10, D = 2'b11;   // state names for the key FSM
+
+    input wire CLOCK_50;                  // 50 MHz board clock
+    input wire [9:0] SW;                  // switches (unused, kept so pin list matches board)
+    input wire [3:0] KEY;                 // pushbuttons; KEY[0] is reset (active low)
+    output wire [9:0] LEDR;               // red LEDs, used for debugging
+    inout wire PS2_CLK, PS2_DAT;          // PS/2 keyboard clock and data lines
+    output wire [6:0] HEX5, HEX4, HEX3, HEX2, HEX1, HEX0;  // 7-segment displays
+    output wire [7:0] VGA_R, VGA_G, VGA_B;                 // colour outputs to the VGA DAC
+    output wire VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK; // VGA timing outputs
+
+    // pixel-write signals from the two drawers (W = world, S = Steve) and the chosen one (MUX)
+    wire [nX-1:0] W_x, S_x, MUX_x;       // x coordinate of the pixel being written
+    wire [nY-1:0] W_y, S_y, MUX_y;       // y coordinate of the pixel being written
+    wire [COLOR_DEPTH-1:0] W_color, S_color, MUX_color; // colour of that pixel
+    wire W_write, S_write, MUX_write;    // 1 = write the pixel this clock cycle
+    wire world_done;                     // 1 once every block has been drawn
+
+    // PS/2 receiver signals (copied from object_pro)
+    reg prev_ps2_clk;                    // PS2 clock value one CLOCK_50 cycle ago
+    wire negedge_ps2_clk;                // 1 for one cycle when PS2 clock falls 1 -> 0
+    wire ps2_rec;                        // 1 when a matching 3-byte group has arrived
+    reg [32:0] Serial;                   // last 33 PS/2 bits = last 3 bytes (11 bits each)
+    reg [3:0] Packet;                    // counts bits 0..11 within one byte
+    wire [7:0] scancode;                 // saved scancode of the key
+    wire key_up;                         // saved: 1 if the group was a key release
+    reg Esc;                             // enable for the scancode/key_up registers
+    reg step;                            // 1-cycle pulse telling Steve to update
+    wire S_done;                         // 1 when Steve is idle (finished drawing)
+    reg [1:0] y_Q, Y_D;                  // key FSM: present state and next state
+
+    wire Resetn, PS2_CLK_S, PS2_DAT_S;   // reset, synchronized PS/2 clock and data
+
+    assign Resetn = KEY[0];              // KEY[0] pressed (0) = reset
+
+    sync S3 (PS2_CLK, Resetn, CLOCK_50, PS2_CLK_S);  // 2 flip-flops: make PS2_CLK safe to use
+    sync S4 (PS2_DAT, Resetn, CLOCK_50, PS2_DAT_S);  // same for PS2_DAT
+
+    always @(posedge CLOCK_50)           // every 50 MHz clock edge...
+        prev_ps2_clk <= PS2_CLK_S;       // ...remember the PS2 clock value
+
+    assign negedge_ps2_clk = (prev_ps2_clk & !PS2_CLK_S); // was 1, is now 0 -> falling edge
+
+    always @(posedge CLOCK_50) begin     // 33-bit shift register for PS/2 bits
+        if (Resetn == 0)                 // on reset...
+            Serial <= 33'b0;             // ...clear it
+        else if (negedge_ps2_clk) begin  // the keyboard's data bit is valid on a falling edge
+            Serial[31:0] <= Serial[32:1];// shift everything one place right
+            Serial[32] <= PS2_DAT_S;     // put the new bit in at the top
+        end
+    end
+
+    always @(posedge CLOCK_50) begin     // bit counter for one 11-bit PS/2 byte
+        if (!Resetn || Packet == 'd11)   // on reset, or after a full byte...
+            Packet <= 'b0;               // ...start counting again
+        else if (negedge_ps2_clk)        // each new bit...
+            Packet <= Packet + 'b1;      // ...adds one
+    end
+
+    // Serial holds 3 bytes: [8:1] oldest, [19:12] middle, [30:23] newest.
+    // Holding a key sends  scancode, scancode, scancode  (oldest == newest)
+    // Releasing it sends   scancode, F0, scancode        (oldest == newest, middle = F0)
+    assign ps2_rec = (Packet == 'd11) && (Serial[30:23] == Serial[8:1]); // either case
+
+    regn USC (Serial[8:1], Resetn, Esc, CLOCK_50, scancode);   // save which key it was
+    regn UKU (Serial[19:12] == 8'hF0, Resetn, Esc, CLOCK_50, key_up); // save "was it a release"
+        defparam UKU.n = 1;              // key_up is a 1-bit register
+
+    // key FSM (same as object_pro): wait for key -> save it -> pulse step -> wait for Steve
+    always @ (*)
+        case (y_Q)
+            A:  if (!ps2_rec) Y_D = A;   // wait for a key group
+                else Y_D = B;
+            B:  Y_D = C;                 // save scancode/key_up this cycle
+            C:  Y_D = D;                 // send step to Steve this cycle
+            D:  if (S_done == 1'b0) Y_D = D; // wait until Steve has erased + redrawn
+                else Y_D = A;
+            default: Y_D = A;
+        endcase
+
+    always @ (*)
+    begin
+        Esc = 1'b0; step = 1'b0;         // defaults: nothing happens
+        case (y_Q)
+            A:  ;                        // waiting: no outputs
+            B:  Esc = 1'b1;              // load scancode and key_up registers
+            C:  step = 1'b1;             // tell Steve to move/change pose
+            D:  ;                        // waiting: no outputs
+        endcase
+    end
+
+    always @(posedge CLOCK_50)           // key FSM state flip-flops
+        if (!Resetn)                     // reset...
+            y_Q <= A;                    // ...go to the waiting state
+        else
+            y_Q <= Y_D;                  // otherwise move to the next state
+
+    world W (Resetn, CLOCK_50, W_x, W_y, W_color, W_write, world_done); // draws all blocks
+
+    steve S (Resetn, CLOCK_50, world_done, step, scancode, key_up,      // draws/moves Steve
+             S_x, S_y, S_color, S_write, S_done);
+
+    // only one drawer may use the VGA adapter at a time: world first, then Steve
+    assign MUX_x     = world_done ? S_x     : W_x;
+    assign MUX_y     = world_done ? S_y     : W_y;
+    assign MUX_color = world_done ? S_color : W_color;
+    assign MUX_write = world_done ? S_write : W_write;
+
+    assign LEDR = {1'b0, world_done, scancode};  // LEDR[8] = world done, LEDR[7:0] = scancode
+    hex7seg H0 (scancode[3:0], HEX0);    // low hex digit of scancode
+    hex7seg H1 (scancode[7:4], HEX1);    // high hex digit of scancode
+    assign HEX2 = 7'b1111111;            // segments are active low, so all 1s = off
+    assign HEX3 = 7'b1111111;
+    assign HEX4 = 7'b1111111;
+    assign HEX5 = 7'b1111111;
+
+    vga_adapter VGA (                    // the course VGA adapter (unchanged)
+        .resetn(Resetn),
+        .clock(CLOCK_50),
+        .color(MUX_color),               // colour to write
+        .x(MUX_x),                       // where to write it
+        .y(MUX_y),
+        .write(MUX_write),               // when to write it
+        .VGA_R(VGA_R),
+        .VGA_G(VGA_G),
+        .VGA_B(VGA_B),
+        .VGA_HS(VGA_HS),
+        .VGA_VS(VGA_VS),
+        .VGA_BLANK_N(VGA_BLANK_N),
+        .VGA_SYNC_N(VGA_SYNC_N),
+        .VGA_CLK(VGA_CLK));
+        defparam VGA.RESOLUTION = "640x480";                   // full resolution
+        defparam VGA.COLOR_DEPTH = COLOR_DEPTH;                // 9-bit colour
+        defparam VGA.BACKGROUND_IMAGE = "./MIF/background.mif"; // your 640x480 background
+
+endmodule
+
+/*****************************************************************************************
+ * world: draws a 20 x 15 grid of 32x32 tiles. For each tile it asks "which block is
+ * here?" (the level map below). Air tiles are skipped. Other tiles are copied pixel by
+ * pixel from that block's texture memory into video memory. Runs once after reset.
+ *****************************************************************************************/
+module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done);
+    parameter nX = 10, nY = 9, COLOR_DEPTH = 9;  // same sizes as the top level
+    parameter AIR = 2'd0, GRASS = 2'd1, DIRT = 2'd2, STONE = 2'd3; // block type codes
+    parameter A = 3'd0, B = 3'd1, C = 3'd2, D = 3'd3, E = 3'd4, F = 3'd5; // FSM states
+
+    input wire Resetn, Clock;
+    output wire [nX-1:0] VGA_x;          // pixel x to write
+    output wire [nY-1:0] VGA_y;          // pixel y to write
+    output reg [COLOR_DEPTH-1:0] VGA_color; // pixel colour to write
+    output wire VGA_write;               // write enable
+    output reg done;                     // 1 when the whole world is drawn
+
+    wire [4:0] TC;                       // tile column 0..19 (640 / 32 = 20)
+    wire [3:0] TR;                       // tile row 0..14 (480 / 32 = 15)
+    wire [4:0] XC, YC;                   // pixel inside the tile, 0..31 each
+    reg Ltc, Etc, Ltr, Etr;              // load/enable for the tile counters
+    reg Lxc, Exc, Lyc, Eyc;              // load/enable for the pixel counters
+    reg write;                           // write this pixel (before the 1-cycle delay)
+    reg [1:0] block;                     // block type at tile (TC, TR)
+    reg [2:0] y_Q, Y_D;                  // FSM present/next state
+    wire [COLOR_DEPTH-1:0] grass_color, dirt_color, stone_color; // texture memory outputs
+
+    // counters (upDn_count from object_pro). Ports: (load value, clock, reset, L, E, up, Q)
+    upDn_count UTC (5'd0, Clock, Resetn, Ltc, Etc, 1'b1, TC);  // tile column
+        defparam UTC.n = 5;
+    upDn_count UTR (4'd0, Clock, Resetn, Ltr, Etr, 1'b1, TR);  // tile row
+        defparam UTR.n = 4;
+    upDn_count UXC (5'd0, Clock, Resetn, Lxc, Exc, 1'b1, XC);  // pixel column in tile
+        defparam UXC.n = 5;
+    upDn_count UYC (5'd0, Clock, Resetn, Lyc, Eyc, 1'b1, YC);  // pixel row in tile
+        defparam UYC.n = 5;
+
+    // LEVEL MAP: which block is at tile (TC, TR)? Edit this to build your world.
+    always @(*)
+        if (TR == 4'd11) block = GRASS;                        // row 11: grass surface
+        else if (TR == 4'd12 || TR == 4'd13) block = DIRT;     // rows 12-13: dirt
+        else if (TR == 4'd14) block = STONE;                   // row 14: stone
+        else block = AIR;                                      // everything else: sky
+
+    // FSM state table
+    always @(*)
+        case (y_Q)
+            A:  Y_D = B;                                       // reset counters
+            B:  if (block == AIR) Y_D = E;                     // nothing to draw: next tile
+                else Y_D = C;                                  // otherwise draw it
+            C:  if (XC != 5'd31) Y_D = C;                      // draw one row of the tile
+                else Y_D = D;
+            D:  if (YC != 5'd31) Y_D = C;                      // next row of the tile
+                else Y_D = E;                                  // tile finished
+            E:  if (TC == 5'd19 && TR == 4'd14) Y_D = F;       // last tile? then done
+                else Y_D = B;                                  // else check the next tile
+            F:  Y_D = F;                                       // stay done forever
+            default: Y_D = A;
+        endcase
+
+    // FSM outputs
+    always @(*)
+    begin
+        Ltc = 1'b0; Etc = 1'b0; Ltr = 1'b0; Etr = 1'b0;        // defaults: counters hold
+        Lxc = 1'b0; Exc = 1'b0; Lyc = 1'b0; Eyc = 1'b0;
+        write = 1'b0; done = 1'b0;
+        case (y_Q)
+            A:  begin Ltc = 1'b1; Ltr = 1'b1; Lxc = 1'b1; Lyc = 1'b1; end // all counters = 0
+            B:  ;                                              // just look at "block"
+            C:  begin Exc = 1'b1; write = 1'b1; end            // write pixel, XC + 1
+            D:  begin Lxc = 1'b1; Eyc = 1'b1; end              // XC = 0, YC + 1
+            E:  if (TC != 5'd19) Etc = 1'b1;                   // next column...
+                else begin Ltc = 1'b1; Etr = 1'b1; end         // ...or column 0, next row
+            F:  done = 1'b1;                                   // world finished
+        endcase
+    end
+
+    always @(posedge Clock)              // FSM state flip-flops
+        if (!Resetn)
+            y_Q <= A;
+        else
+            y_Q <= Y_D;
+
+    // texture memories (object_mem from object_pro). Address {YC,XC} = YC*32 + XC works
+    // because 32 is a power of 2. Each MIF must be DEPTH=1024, WIDTH=9.
+    object_mem GR ({YC, XC}, Clock, grass_color);
+        defparam GR.n = COLOR_DEPTH;
+        defparam GR.Mn = 10;                                   // 1024 words = 2^10
+        defparam GR.INIT_FILE = "./MIF/grass.mif";
+    object_mem DI ({YC, XC}, Clock, dirt_color);
+        defparam DI.n = COLOR_DEPTH;
+        defparam DI.Mn = 10;
+        defparam DI.INIT_FILE = "./MIF/dirt.mif";
+    object_mem ST ({YC, XC}, Clock, stone_color);
+        defparam ST.n = COLOR_DEPTH;
+        defparam ST.Mn = 10;
+        defparam ST.INIT_FILE = "./MIF/stone.mif";
+
+    // The memories answer one clock AFTER they get an address, so delay x, y and write by
+    // one clock too (same trick as object_pro's U7/U8/U9). Screen x = TC*32 + XC = {TC,XC}.
+    regn UX ({TC, XC}, Resetn, 1'b1, Clock, VGA_x);
+        defparam UX.n = nX;
+    regn UY ({TR, YC}, Resetn, 1'b1, Clock, VGA_y);
+        defparam UY.n = nY;
+    regn UW (write, Resetn, 1'b1, Clock, VGA_write);
+        defparam UW.n = 1;
+
+    always @(*)                          // pick the texture for this tile's block type
+        case (block)
+            GRASS:   VGA_color = grass_color;
+            DIRT:    VGA_color = dirt_color;
+            default: VGA_color = stone_color;
+        endcase
+
+endmodule
+
+/*****************************************************************************************
+ * steve: object_pro's "object", changed to a 32-wide x 64-tall sprite with 5 poses.
+ * Each update: erase the old Steve (paint SKY over his old pixels), change position/pose,
+ * then draw the new Steve. Pixels equal to TRANSPARENT are never written, so the
+ * background around his outline stays untouched.
+ *****************************************************************************************/
+module steve (Resetn, Clock, go, step, scancode, key_up,
+              VGA_x, VGA_y, VGA_color, VGA_write, done);
+    parameter nX = 10, nY = 9, COLOR_DEPTH = 9;
+    parameter X_INIT = 10'd320;          // starting x (left edge of Steve)
+    parameter Y_POS  = 9'd288;           // top edge: 11*32 - 64, so his feet touch the grass
+    parameter STEP   = 10'd8;            // pixels moved per key repeat
+    parameter SKY = 9'h1FF;              // CHANGE ME: colour used to erase Steve
+    parameter TRANSPARENT = 9'h000;      // CHANGE ME: background colour inside Steve's MIFs
+    parameter KEY_A = 8'h1C, KEY_D = 8'h23, KEY_F = 8'h2B; // PS/2 scancodes
+    parameter FRONT = 3'd0, SIDE = 3'd1, WALK1 = 3'd2, WALK2 = 3'd3, HIT = 3'd4; // poses
+    parameter A = 3'd0, B = 3'd1, C = 3'd2, D = 3'd3, E = 3'd4, F = 3'd5, G = 3'd6; // states
+
+    input wire Resetn, Clock;
+    input wire go;                       // world finished: OK to draw Steve
+    input wire step;                     // a key event arrived
+    input wire [7:0] scancode;           // which key
+    input wire key_up;                   // 1 = it was a release
+    output wire [nX-1:0] VGA_x;
+    output wire [nY-1:0] VGA_y;
+    output wire [COLOR_DEPTH-1:0] VGA_color;
+    output wire VGA_write;
+    output reg done;                     // 1 = idle, ready for the next key
+
+    reg [nX-1:0] X;                      // Steve's left edge
+    reg [2:0] pose;                      // which of the 5 sprites to show
+    reg face_left;                       // 1 = mirror the sprite horizontally
+    wire [4:0] XC;                       // sprite column 0..31
+    wire [5:0] YC;                       // sprite row 0..63
+    wire [4:0] XM;                       // XC, mirrored when facing left
+    reg Lxc, Exc, Lyc, Eyc;              // sprite counter controls
+    reg write, erase;                    // write a pixel / it is an erase pixel
+    reg init, update;                    // set start position / apply the key
+    reg [2:0] y_Q, Y_D;                  // FSM present/next state
+    wire [COLOR_DEPTH-1:0] front_c, side_c, walk1_c, walk2_c, hit_c; // sprite memory outputs
+    reg [COLOR_DEPTH-1:0] obj_color;     // output of the currently selected sprite
+    wire erase_d;                        // erase, delayed one clock
+
+    upDn_count UXC (5'd0, Clock, Resetn, Lxc, Exc, 1'b1, XC); // sprite column counter
+        defparam UXC.n = 5;
+    upDn_count UYC (6'd0, Clock, Resetn, Lyc, Eyc, 1'b1, YC); // sprite row counter
+        defparam UYC.n = 6;
+
+    // position and pose register: changes only in state A (init) or E (update)
+    always @(posedge Clock)
+        if (!Resetn || init) begin
+            X <= X_INIT;                 // start position
+            pose <= FRONT;               // facing the player
+            face_left <= 1'b0;
+        end
+        else if (update) begin
+            if (key_up)                  // key let go: stand still, sideways
+                pose <= SIDE;
+            else if (scancode == KEY_A) begin
+                face_left <= 1'b1;                              // look left
+                pose <= (pose == WALK1) ? WALK2 : WALK1;        // alternate walk frames
+                if (X >= STEP) X <= X - STEP;                   // move left, stop at edge
+            end
+            else if (scancode == KEY_D) begin
+                face_left <= 1'b0;                              // look right
+                pose <= (pose == WALK1) ? WALK2 : WALK1;
+                if (X <= 10'd640 - 10'd32 - STEP) X <= X + STEP; // move right, stop at edge
+            end
+            else if (scancode == KEY_F)
+                pose <= HIT;                                    // swing
+        end
+
+    // FSM state table (object_pro's object with a start state added)
+    always @(*)
+        case (y_Q)
+            A:  if (go) Y_D = F;                // world done: draw Steve for the first time
+                else Y_D = A;
+            B:  if (step) Y_D = C;              // key event: start an update
+                else Y_D = B;
+            C:  if (XC != 5'd31) Y_D = C;       // erase one row
+                else Y_D = D;
+            D:  if (YC != 6'd63) Y_D = C;       // next row to erase
+                else Y_D = E;
+            E:  Y_D = F;                        // apply the key (move / change pose)
+            F:  if (XC != 5'd31) Y_D = F;       // draw one row
+                else Y_D = G;
+            G:  if (YC != 6'd63) Y_D = F;       // next row to draw
+                else Y_D = B;                   // finished: back to idle
+            default: Y_D = A;
+        endcase
+
+    // FSM outputs
+    always @(*)
+    begin
+        Lxc = 1'b0; Exc = 1'b0; Lyc = 1'b0; Eyc = 1'b0;
+        write = 1'b0; erase = 1'b0; init = 1'b0; update = 1'b0; done = 1'b0;
+        case (y_Q)
+            A:  begin init = 1'b1; Lxc = 1'b1; Lyc = 1'b1; end            // reset everything
+            B:  begin Lxc = 1'b1; Lyc = 1'b1; done = 1'b1; end            // idle, counters = 0
+            C:  begin Exc = 1'b1; write = 1'b1; erase = 1'b1; end         // erase pixel
+            D:  begin Lxc = 1'b1; Eyc = 1'b1; erase = 1'b1; end           // next row
+            E:  update = 1'b1;                                            // move/pose
+            F:  begin Exc = 1'b1; write = 1'b1; end                       // draw pixel
+            G:  begin Lxc = 1'b1; Eyc = 1'b1; end                         // next row
+        endcase
+    end
+
+    always @(posedge Clock)              // FSM state flip-flops
+        if (!Resetn)
+            y_Q <= A;
+        else
+            y_Q <= Y_D;
+
+    assign XM = face_left ? ~XC : XC;    // ~XC = 31 - XC: read the row backwards = mirror
+
+    // 5 sprite memories. Address {YC,XM} = YC*32 + XM. Each MIF: DEPTH=2048, WIDTH=9,
+    // 32 pixels wide x 64 tall, stored row by row.
+    object_mem M0 ({YC, XM}, Clock, front_c);
+        defparam M0.n = COLOR_DEPTH;
+        defparam M0.Mn = 11;                                   // 2048 words = 2^11
+        defparam M0.INIT_FILE = "./MIF/steve_front.mif";
+    object_mem M1 ({YC, XM}, Clock, side_c);
+        defparam M1.n = COLOR_DEPTH;
+        defparam M1.Mn = 11;
+        defparam M1.INIT_FILE = "./MIF/steve_side.mif";
+    object_mem M2 ({YC, XM}, Clock, walk1_c);
+        defparam M2.n = COLOR_DEPTH;
+        defparam M2.Mn = 11;
+        defparam M2.INIT_FILE = "./MIF/steve_walk1.mif";
+    object_mem M3 ({YC, XM}, Clock, walk2_c);
+        defparam M3.n = COLOR_DEPTH;
+        defparam M3.Mn = 11;
+        defparam M3.INIT_FILE = "./MIF/steve_walk2.mif";
+    object_mem M4 ({YC, XM}, Clock, hit_c);
+        defparam M4.n = COLOR_DEPTH;
+        defparam M4.Mn = 11;
+        defparam M4.INIT_FILE = "./MIF/steve_hit.mif";
+
+    always @(*)                          // pick the sprite for the current pose
+        case (pose)
+            FRONT:   obj_color = front_c;
+            SIDE:    obj_color = side_c;
+            WALK1:   obj_color = walk1_c;
+            WALK2:   obj_color = walk2_c;
+            default: obj_color = hit_c;
+        endcase
+
+    // delay x, y, write and erase by one clock to line up with the memory output
+    regn UX (X + XC, Resetn, 1'b1, Clock, VGA_x);
+        defparam UX.n = nX;
+    regn UY (Y_POS + YC, Resetn, 1'b1, Clock, VGA_y);
+        defparam UY.n = nY;
+    wire write_d;                        // write, delayed one clock
+    regn UW (write, Resetn, 1'b1, Clock, write_d);
+        defparam UW.n = 1;
+    regn UE (erase, Resetn, 1'b1, Clock, erase_d);
+        defparam UE.n = 1;
+
+    assign VGA_color = erase_d ? SKY : obj_color;              // erase paints sky colour
+    // only touch pixels that are part of Steve (erase uses the OLD pose, since update
+    // happens after the erase, so this erases exactly the old outline)
+    assign VGA_write = write_d & (obj_color != TRANSPARENT);
+
+endmodule
+
+/***************** helper modules, copied unchanged from object_pro *****************/
+
+// synchronizer, implemented as two FFs in series
+module sync(D, Resetn, Clock, Q);
+    input wire D;
+    input wire Resetn, Clock;
+    output reg Q;
+
+    reg Qi; // internal node
+
+    always @(posedge Clock)
+        if (Resetn == 0) begin
+            Qi <= 1'b0;
+            Q <= 1'b0;
+        end
+        else begin
+            Qi <= D;
+            Q <= Qi;
+        end
+endmodule
+
+// n-bit register with enable
+module regn(R, Resetn, E, Clock, Q);
+    parameter n = 8;
+    input wire [n-1:0] R;
+    input wire Resetn, E, Clock;
+    output reg [n-1:0] Q;
+
+    always @(posedge Clock)
+        if (!Resetn)
+            Q <= 0;
+        else if (E)
+            Q <= R;
+endmodule
+
+// n-bit up/down-counter with reset, load, enable, and direction control
+module upDn_count (R, Clock, Resetn, L, E, Dir, Q);
+    parameter n = 8;
+    input wire [n-1:0] R;
+    input wire Clock, Resetn, E, L, Dir;
+    output reg [n-1:0] Q;
+
+    always @ (posedge Clock)
+        if (Resetn == 0)
+            Q <= {n{1'b0}};
+        else if (L == 1)
+            Q <= R;
+        else if (E)
+            if (Dir)
+                Q <= Q + {{n-1{1'b0}},1'b1};
+            else
+                Q <= Q - {{n-1{1'b0}},1'b1};
+endmodule
+
+module hex7seg (hex, display);
+    input wire [3:0] hex;
+    output reg [6:0] display;
+
+    always @ (hex)
+        case (hex)
+            4'h0: display = 7'b1000000;
+            4'h1: display = 7'b1111001;
+            4'h2: display = 7'b0100100;
+            4'h3: display = 7'b0110000;
+            4'h4: display = 7'b0011001;
+            4'h5: display = 7'b0010010;
+            4'h6: display = 7'b0000010;
+            4'h7: display = 7'b1111000;
+            4'h8: display = 7'b0000000;
+            4'h9: display = 7'b0011000;
+            4'hA: display = 7'b0001000;
+            4'hB: display = 7'b0000011;
+            4'hC: display = 7'b1000110;
+            4'hD: display = 7'b0100001;
+            4'hE: display = 7'b0000110;
+            4'hF: display = 7'b0001110;
+        endcase
+endmodule
