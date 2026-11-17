@@ -364,8 +364,8 @@ endmodule
 module block_map(TC, TR, block);
     parameter AIR = 4'd0, GRASS = 4'd1, DIRT = 4'd2, STONE = 4'd3, COBBLE = 4'd4, LOG = 4'd5,
 	 PLANKS = 4'd6, LEAVES = 4'd7, IRON = 4'd8, DIAMOND = 4'd9; // block type codes
-		input [4:0] TC;
-		input [3:0] TR;
+		input wire [4:0] TC;
+		input wire [3:0] TR;
 		output reg [3:0] block;
 		
 		
@@ -486,7 +486,6 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
             E:  if (TC == 5'd19 && TR == 4'd14) Y_D = F;       // last tile? then done
                 else Y_D = B;                                  // else check the next tile
             F:  Y_D = F;                                       // stay done forever
-				G:  if (block == AIR && TR >= 4'd5) Y_D = C;
             default: Y_D = A;
         endcase
 
@@ -597,7 +596,7 @@ module steve (Resetn, Clock, go, step, scancode, key_up,
 
 	 input wire TC;
 	 input wire TR;
-	 input [3:0] block;
+	 input wire [3:0] block;
 	 
     input wire Resetn, Clock;
     input wire go;                       // world finished: OK to draw Steve
@@ -665,7 +664,7 @@ module steve (Resetn, Clock, go, step, scancode, key_up,
 	 always @ (posedge Clock) 
 		if (!Resetn) pend <= 1'b0;
 		else if (phys_tick) pend <= 1'b1;
-		else if (update & phys) pend <= 1'b0;
+		else if (update && phys) pend <= 1'b0;
 		
 	 always @(posedge Clock) 
 		if (!Resetn) phys <= 1'b0;
