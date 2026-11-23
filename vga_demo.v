@@ -40,6 +40,16 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	wire [COLOR_DEPTH-1:0] W_color, S_color, MUX_color; // color multiplexer
 	wire W_write, S_write, MUX_write; // write control multiplexer
 	
+	
+	wire [9:0] UI_x;
+	wire [8:0] UI_y;
+	wire [8:0] UI_color;
+	wire UI_write;
+	wire UI_busy;
+	
+	reg ui_started;
+	wire UI_start;
+	
 	wire world_done;
 	
     reg prev_ps2_clk;               // ps2_clk value in the previous clock cycle
@@ -312,11 +322,39 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		
 	);
 	
+	selection_ui UI (
+	
+		.Clock(CLOCK_50),
+		.Resetn(Resetn),
+		.start(UI_start),
+		
+		.player_x(steve_x),
+		.player_y(steve_y),
+		.selected_index(SW[3:0]),
+		
+		.busy(UI_busy),
+		
+		.VGA_x(UI_x),
+		.VGA_y(UI_y),
+		.VGA_color(UI_color),
+		.VGA_write(UI_write)
+	
+	);
+	
+	assign UI_start = world_done && S_done && !ui_started;
+	
+	always @(posedge CLOCK_50) begin
+			if (!Resetn)
+				ui_started <= 1'b0;
+			else if (UI_start)
+				ui_started <= 1'b1;
+	end
+	
     // choose x, y, color, and write for one of the two objects
-    assign MUX_x = world_done ? S_x : W_x;
-    assign MUX_y = world_done ? S_y : W_y;
-    assign MUX_color = world_done ? S_color : W_color;
-    assign MUX_write = world_done ? (S_write && S_y >= 9'd160) : (W_write && W_y >= 9'd160); // prevents both world renderer and steve from overwriting the top 160 pixrls
+    assign MUX_x = UI_busy ? UI_x : world_done ? S_x : W_x;
+    assign MUX_y = UI_busy ? UI_y : world_done ? S_y : W_y;
+    assign MUX_color = UI_busy ? UI_color : world_done ? S_color : W_color;
+    assign MUX_write = UI_busy ? (UI_write && UI_y >= 9'd160) : world_done ? (S_write && S_y >= 9'd160) : (W_write && W_y >= 9'd160); // prevents both world renderer and steve from overwriting the top 160 pixrls
 	 
 	 // display PS2 data
     hex7seg H0 (Serial[4:1], HEX0);
