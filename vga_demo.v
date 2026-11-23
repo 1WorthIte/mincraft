@@ -73,6 +73,14 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     wire Resetn;        // Reset, and synchronized versions of KEYs
     wire PS2_CLK_S, PS2_DAT_S;      // synchronized versions of PS2 signals
 	 
+	 reg [9:0] rendered_x;
+	 reg [8:0] rendered_y;
+	 reg [3:0] rendered_index;
+	 
+	 wire position_changed = (steve_x != rendered_x) || (steve_y != rendered_y);
+	 
+	 wire selection_changed = (SW[3:0] != rendered_index);
+	 
     assign Resetn = KEY[0];
 	 
 	     sync S3 (PS2_CLK, Resetn, CLOCK_50, PS2_CLK_S);
@@ -300,9 +308,14 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		
 	);
 	
+	wire tile_redraw_req;
+	wire [4:0] tile_redraw_col;
+	wire [3:0] tile_redraw_row;
+	wire tile_redraw_done;
+	
 	world W (
 	
-		.Resetn(Resetn & map_ready), .Clock(CLOCK_50),
+		.Resetn(Resetn & map_ready), .Clock(CLOCK_50), .redraw_req(tile_redraw_req), .redraw_col(tile_redraw_col), .redraw_row(tile_redraw_row), .redraw_done(tile_redraw_done), 
 		.VGA_x(W_x), .VGA_y(W_y), .VGA_color(W_color), .VGA_write(W_write),
 		.done(world_done), .TC(world_col), .TR(world_row), .block(world_block)
 	
@@ -318,7 +331,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		.below_row(below_row), .above_row(above_row), 
 		.s_top(s_top), .s_mid(s_mid), .s_bot(s_bot),
 		.d_left(d_left), .d_right(d_right), .u_left(u_left), .u_right(u_right),
-		.player_x(steve_x), .player_y(steve_y)
+		.player_x(steve_x), .player_y(steve_y),
+		.force_redraw(steve_force_redraw), .hold_steve(refresh_busy)
 		
 	);
 	
@@ -605,7 +619,7 @@ endmodule
 
 
 // first custom module
-module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, block);
+module world (Resetn, Clock, redraw_req, redraw_col, redraw_row, redraw_done, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, block);
     parameter nX = 10, nY = 9, COLOR_DEPTH = 9;
     parameter AIR = 4'd0, GRASS = 4'd1, DIRT = 4'd2, STONE = 4'd3, COBBLE = 4'd4, LOG = 4'd5,
 	 PLANKS = 4'd6, LEAVES = 4'd7, IRON = 4'd8, DIAMOND = 4'd9; // block type codes
@@ -617,6 +631,11 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
     output reg [COLOR_DEPTH-1:0] VGA_color; // pixel colour to write
     output wire VGA_write;               // write enable
     output reg done;                     // 1 when the whole world is drawn
+	 
+	 input wire redraw_req;
+	 input wire [4:0] redraw_col;
+	 input wire [3:0] redraw_row;
+	 output wire redraw_done;
 
     output wire [4:0] TC;                       // tile column 0..19 (640 / 32 = 20)
     output wire [3:0] TR;                       // tile row 0..14 (480 / 32 = 15)
@@ -631,15 +650,40 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
     reg [2:0] y_Q, Y_D;                  // FSM present/next state
     wire [COLOR_DEPTH-1:0] grass_color, dirt_color, stone_color, cobble_color, log_color, planks_color, leaves_color, iron_color, diamond_color; // texture memory outputs
 
-    // counters (upDn_count from object_pro). Ports: (load value, clock, reset, L, E, up, Q)
-    upDn_count UTC (5'd0, Clock, Resetn, Ltc, Etc, 1'b1, TC);  // tile column
+    wire [4:0] tc_load = tile_mode ? saved_col : 5'd0;
+	 wire [3:0] tr_load = tile_mode ? saved_row : 4'd0;
+	 
+	 // counters (upDn_count from object_pro). Ports: (load value, clock, reset, L, E, up, Q)
+    upDn_count UTC (tc_load, Clock, Resetn, Ltc, Etc, 1'b1, TC);  // tile column
         defparam UTC.n = 5;
-    upDn_count UTR (4'd0, Clock, Resetn, Ltr, Etr, 1'b1, TR);  // tile row
+    upDn_count UTR (tr_load, Clock, Resetn, Ltr, Etr, 1'b1, TR);  // tile row
         defparam UTR.n = 4;
     upDn_count UXC (5'd0, Clock, Resetn, Lxc, Exc, 1'b1, XC);  // pixel column in tile
         defparam UXC.n = 5;
     upDn_count UYC (5'd0, Clock, Resetn, Lyc, Eyc, 1'b1, YC);  // pixel row in tile
         defparam UYC.n = 5;
+		  
+	 reg tile_mode;
+	 reg [4:0] saved_col;
+	 reg [3:0] saved_row;
+	 
+	 always @(posedge Clock) begin
+		if (!Resetn) begin
+			tile_mode <= 1'b0;
+			saved_col <= 5'd0;
+			saved_row <= 4'd0;
+		end
+		else if (y_Q == F && redraw_req) begin
+			tile_mode <= 1'b1;
+			saved_col <= redraw_col;
+			saved_row <= redraw_row;
+		end
+		else if (y_Q == E && tile_mode) begin
+			tile_mode <= 1'b0;
+		end
+	 end
+	 
+	 assign redraw_done = (y_Q == E) && tile_mode;
 
     // FSM state table
     always @(*)
@@ -650,9 +694,12 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
                 else Y_D = D;
             D:  if (YC != 5'd31) Y_D = C;                      // next row of the tile (row as in 32 rows per block)
                 else Y_D = E;                                  // block finished
-            E:  if (TC == 5'd19 && TR == 4'd14) Y_D = F;       // last tile? then done
-                else Y_D = B;                                  // else check the next tile
-            F:  Y_D = F;                                       // stay done forever
+            E:  if (tile_mode) Y_D = F;       // last tile? then done
+                else if (TC == 5'd19 && TR == 4'd14) Y_D = F;
+					 else Y_D = B;                                  // else check the next tile
+            F:  if (redraw_req) Y_D = G;
+					 else Y_D = F;                                       // stay done forever
+				G:  Y_D = B;
             default: Y_D = A;
         endcase
 
@@ -670,6 +717,7 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
             E:  if (TC != 5'd19) Etc = 1'b1;                   // next column...
                 else begin Ltc = 1'b1; Etr = 1'b1; end         // ...or column 0, next row
             F:  done = 1'b1;                                   // world finished
+				G: begin Ltc = 1'b1; Ltr = 1'b1; Lxc = 1'b1; Lyc = 1'b1; end
         endcase
     end
 
@@ -747,7 +795,7 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
 				  side_col, left_col, right_col,
 				  top_row, mid_row, bottom_row, below_row, above_row,
 				  s_top, s_mid, s_bot, d_left, d_right, u_left, u_right,
-				  player_x, player_y);
+				  player_x, player_y, force_draw, hold_steve);
 				  
     parameter nX = 10, nY = 9, COLOR_DEPTH = 9;
     parameter X_INIT = 10'd320;          // starting x (left edge of Steve)
@@ -781,6 +829,9 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
     output wire [COLOR_DEPTH-1:0] VGA_color;
     output wire VGA_write;
     output reg done;                     // 1 = idle, ready for the next key
+	 
+	 input wire force_draw;
+	 input wire hold_steve;
 
     reg [nX-1:0] X;                      // Steve's left edge
     reg [2:0] pose;                      // which of the 5 sprites to show
@@ -918,8 +969,10 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
         case (y_Q)
             A:  if (go) Y_D = F;                // world done: draw Steve for the first time
                 else Y_D = A;
-            B:  if (step) Y_D = C;              // key event: start an update
-				    else if (pend && airborne) Y_D = C;
+            B:  if (force_draw) Y_D = F;              // key event: start an update
+				    else if (hold_steve) Y_D = B;
+					 else if (step) Y_D = C;
+					 else if (pend && airborne) Y_D = C;
                 else Y_D = B;
             C:  if (XC != 5'd31) Y_D = C;       // erase one row
                 else Y_D = D;
