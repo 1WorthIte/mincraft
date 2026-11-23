@@ -1,5 +1,5 @@
 Flow report for vga_demo
-Tue Nov 10 02:52:45 2026
+Sun Nov 22 19:43:24 2026
 Quartus Prime Version 23.1std.0 Build 991 11/28/2023 SC Lite Edition
 
 
@@ -41,15 +41,15 @@ https://fpgasoftware.intel.com/eula.
 +----------------------------------------------------------------------------------+
 ; Flow Summary                                                                     ;
 +---------------------------------+------------------------------------------------+
-; Flow Status                     ; Successful - Tue Nov 10 02:52:17 2026          ;
+; Flow Status                     ; Successful - Sun Nov 22 19:43:09 2026          ;
 ; Quartus Prime Version           ; 23.1std.0 Build 991 11/28/2023 SC Lite Edition ;
 ; Revision Name                   ; vga_demo                                       ;
 ; Top-level Entity Name           ; vga_demo                                       ;
 ; Family                          ; Cyclone V                                      ;
 ; Device                          ; 5CSEMA5F31C6                                   ;
 ; Timing Models                   ; Final                                          ;
-; Logic utilization (in ALMs)     ; 441 / 32,070 ( 1 % )                           ;
-; Total registers                 ; 196                                            ;
+; Logic utilization (in ALMs)     ; 2,379 / 32,070 ( 7 % )                         ;
+; Total registers                 ; 1486                                           ;
 ; Total pins                      ; 98 / 457 ( 21 % )                              ;
 ; Total virtual pins              ; 0                                              ;
 ; Total block memory bits         ; 2,921,472 / 4,065,280 ( 72 % )                 ;
@@ -68,7 +68,7 @@ https://fpgasoftware.intel.com/eula.
 +-------------------+---------------------+
 ; Option            ; Setting             ;
 +-------------------+---------------------+
-; Start date & time ; 11/10/2026 02:49:07 ;
+; Start date & time ; 11/22/2026 19:38:54 ;
 ; Main task         ; Compilation         ;
 ; Revision Name     ; vga_demo            ;
 +-------------------+---------------------+
@@ -79,7 +79,7 @@ https://fpgasoftware.intel.com/eula.
 +-------------------------------------+----------------------------------------+---------------+-------------+------------+
 ; Assignment Name                     ; Value                                  ; Default Value ; Entity Name ; Section Id ;
 +-------------------------------------+----------------------------------------+---------------+-------------+------------+
-; COMPILER_SIGNATURE_ID               ; 93181000662304.179429694616916         ; --            ; --          ; --         ;
+; COMPILER_SIGNATURE_ID               ; 93181000655613.179539433417944         ; --            ; --          ; --         ;
 ; MAX_CORE_JUNCTION_TEMP              ; 85                                     ; --            ; --          ; --         ;
 ; MIN_CORE_JUNCTION_TEMP              ; 0                                      ; --            ; --          ; --         ;
 ; PARTITION_COLOR                     ; -- (Not supported for targeted family) ; --            ; --          ; Top        ;
@@ -95,11 +95,11 @@ https://fpgasoftware.intel.com/eula.
 +----------------------+--------------+-------------------------+---------------------+------------------------------------+
 ; Module Name          ; Elapsed Time ; Average Processors Used ; Peak Virtual Memory ; Total CPU Time (on all processors) ;
 +----------------------+--------------+-------------------------+---------------------+------------------------------------+
-; Analysis & Synthesis ; 00:00:41     ; 1.0                     ; 4967 MB             ; 00:00:22                           ;
-; Fitter               ; 00:01:58     ; 1.2                     ; 6952 MB             ; 00:05:48                           ;
-; Assembler            ; 00:00:16     ; 1.0                     ; 5273 MB             ; 00:00:09                           ;
-; Timing Analyzer      ; 00:00:26     ; 1.8                     ; 5474 MB             ; 00:00:23                           ;
-; Total                ; 00:03:21     ; --                      ; --                  ; 00:06:42                           ;
+; Analysis & Synthesis ; 00:00:13     ; 1.0                     ; 4960 MB             ; 00:00:22                           ;
+; Fitter               ; 00:03:49     ; 1.1                     ; 6976 MB             ; 00:14:05                           ;
+; Assembler            ; 00:00:09     ; 1.0                     ; 5289 MB             ; 00:00:09                           ;
+; Timing Analyzer      ; 00:00:14     ; 2.8                     ; 5556 MB             ; 00:00:35                           ;
+; Total                ; 00:04:25     ; --                      ; --                  ; 00:15:11                           ;
 +----------------------+--------------+-------------------------+---------------------+------------------------------------+
 
 
@@ -108,10 +108,10 @@ https://fpgasoftware.intel.com/eula.
 +----------------------+------------------+------------+------------+----------------+
 ; Module Name          ; Machine Hostname ; OS Name    ; OS Version ; Processor type ;
 +----------------------+------------------+------------+------------+----------------+
-; Analysis & Synthesis ; BA3135WS20       ; Windows 10 ; 10.0       ; x86_64         ;
-; Fitter               ; BA3135WS20       ; Windows 10 ; 10.0       ; x86_64         ;
-; Assembler            ; BA3135WS20       ; Windows 10 ; 10.0       ; x86_64         ;
-; Timing Analyzer      ; BA3135WS20       ; Windows 10 ; 10.0       ; x86_64         ;
+; Analysis & Synthesis ; BA3135WS09       ; Windows 10 ; 10.0       ; x86_64         ;
+; Fitter               ; BA3135WS09       ; Windows 10 ; 10.0       ; x86_64         ;
+; Assembler            ; BA3135WS09       ; Windows 10 ; 10.0       ; x86_64         ;
+; Timing Analyzer      ; BA3135WS09       ; Windows 10 ; 10.0       ; x86_64         ;
 +----------------------+------------------+------------+------------+----------------+
 
 

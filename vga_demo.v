@@ -228,17 +228,80 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         else
             y_Q <= Y_D;
 				
-	// draws the world, background first then blocks
-	world W (Resetn, CLOCK_50, W_x, W_y, W_color, W_write, world_done);
+	// shared mutable block map
 	
-	// Steve appears when world_done = 1, then updates on each step
-	steve S (Resetn, CLOCK_50, world_done, step, scancode, key_up, S_x, S_y, S_color, S_write, S_done);
+	wire map_ready;
+	wire [4:0] world_col, side_col, left_col, right_col;
+	wire [3:0] world_row, top_row, mid_row, bottom_row, below_row, above_row;
+	wire [3:0] world_block, s_top, s_mid, s_bot, d_left, d_right, u_left, u_right;
+	wire [3:0] selected_block;
+	wire selected_valid;
+	wire [3:0] selected_above_block, selected_below_block;
+	wire [3:0] selected_left_block, selected_right_block;
+	
+	wire selected_has_neighbor;
+	wire map_write_enable;
+	
+	wire [4:0] map_write_col;
+	wire [3:0] map_write_row, map_write_block;
+	wire [4:0] selected_col;
+	wire [3:0] selected_row;
+	
+	assign map_write_enable = 1'b0;
+	assign map_write_col = 5'd0;
+	assign map_write_row = 4'd0;
+	assign map_write_block = 4'd0;
+	assign selected_col = 5'd0;
+	assign selected_row = 4'd0;
+	
+	assign selected_has_neighbor = (selected_above_block != 4'd0) || (selected_below_block != 4'd0) || (selected_left_block != 4'd0) || (selected_right_block != 4'd0);
+	
+	block_map MAP (
+		
+		.Clock(CLOCK_50), .Resetn(Resetn), .ready(map_ready),
+		.write_enable(map_write_enable), .write_col(map_write_col),
+		.write_row(map_write_row), .write_block(map_write_block),
+		.read0_col(world_col), .read0_row(world_row), .read0_block(world_block), 
+		.read1_col(side_col), .read1_row(top_row), .read1_block(s_top), 
+		.read2_col(side_col), .read2_row(mid_row), .read2_block(s_mid), 
+		.read3_col(side_col), .read3_row(bottom_row), .read3_block(s_bot), 
+		.read4_col(left_col), .read4_row(below_row), .read4_block(d_left), 
+		.read5_col(right_col), .read5_row(below_row), .read5_block(d_right), 
+		.read6_col(left_col), .read6_row(above_row), .read6_block(u_left), 
+		.read7_col(right_col), .read7_row(above_row), .read7_block(u_right), 
+		.read8_col(selected_col), .read8_row(selected_row), .read8_block(selected_block),
+		.read8_valid(selected_valid),
+		.read8_above_block(selected_above_block), .read8_below_block(selected_below_block),
+		.read8_left_block(selected_left_block), .read8_right_block(selected_right_block)
+		
+	);
+	
+	world W (
+	
+		.Resetn(Resetn & map_ready), .Clock(CLOCK_50),
+		.VGA_x(W_x), .VGA_y(W_y), .VGA_color(W_color), .VGA_write(W_write),
+		.done(world_done), .TC(world_col), .TR(world_row), .block(world_block)
+	
+	);
+	
+	steve S (
+		
+		.Resetn(Resetn), .Clock(CLOCK_50), .go(world_done),
+		.step(step), .scancode(scancode), .key_up(key_up),
+		.VGA_x(S_x), .VGA_y(S_y), .VGA_color(S_color), .VGA_write(S_write), .done(S_done),
+		.side_col(side_col), .left_col(left_col), .right_col(right_col),
+		.top_row(top_row), .mid_row(mid_row), .bottom_row(bottom_row),
+		.below_row(below_row), .above_row(above_row), 
+		.s_top(s_top), .s_mid(s_mid), .s_bot(s_bot),
+		.d_left(d_left), .d_right(d_right), .u_left(u_left), .u_right(u_right)
+		
+	);
 	
     // choose x, y, color, and write for one of the two objects
     assign MUX_x = world_done ? S_x : W_x;
     assign MUX_y = world_done ? S_y : W_y;
     assign MUX_color = world_done ? S_color : W_color;
-    assign MUX_write = world_done ? S_write : W_write;
+    assign MUX_write = world_done ? (S_write && S_y >= 9'd160) : (W_write && W_y >= 9'd160); // prevents both world renderer and steve from overwriting the top 160 pixrls
 	 
 	 // display PS2 data
     hex7seg H0 (Serial[4:1], HEX0);
@@ -361,68 +424,129 @@ module hex7seg (hex, display);
         endcase
 endmodule
 
-module block_map(TC, TR, block);
-    parameter AIR = 4'd0, GRASS = 4'd1, DIRT = 4'd2, STONE = 4'd3, COBBLE = 4'd4, LOG = 4'd5,
-	 PLANKS = 4'd6, LEAVES = 4'd7, IRON = 4'd8, DIAMOND = 4'd9; // block type codes
-		input wire [4:0] TC;
-		input wire [3:0] TR;
-		output reg [3:0] block;
+module block_map(
+
+	input wire Clock, Resetn,
+	output reg ready,
+	input wire write_enable,
+	
+	input wire [4:0] write_col,
+	input wire [3:0] write_row,
+	input wire [3:0] write_block,
+	
+	// read steve adjacent blocks:
+		input wire [4:0] read0_col,
+		input wire [3:0] read0_row,
+		output wire [3:0] read0_block,
 		
+		input wire [4:0] read1_col,
+		input wire [3:0] read1_row,
+		output wire [3:0] read1_block,
 		
-      always @(*) begin
-        if (TR == 4'd10 && (TC >= 5'd0 && TC <= 5'd4)) block = GRASS;
-		  else if ((TR >= 4'd5 && TR <= 4'd6) && (TC >= 5'd2 && TC <= 5'd4)) block = LEAVES;
-		  else if ((TR >= 4'd7 && TR <= 4'd9) && (TC == 5'd3)) block = LOG;
-		  else if ((TR >= 4'd11 && TR <= 4'd12) && (TC >= 5'd0 && TC <= 5'd4)) block = DIRT;
-		  else if ((TR >= 4'd13 && TR <= 4'd14) && (TC == 5'd0)) block = STONE;
-		  else if ((TR >= 4'd13 && TR <= 4'd14) && (TC >= 5'd3 && TC <= 5'd6)) block = STONE;
-		  
-		  else if ((TR >= 4'd9 && TR <= 4'd9) && (TC >= 5'd5 && TC <= 5'd6)) block = GRASS;
-		  else if ((TR >= 4'd8 && TR <= 4'd8) && (TC >= 5'd7 && TC <= 5'd8)) block = GRASS;
-		  else if ((TR >= 4'd9 && TR <= 4'd9) && (TC >= 5'd9 && TC <= 5'd10)) block = GRASS;
-		  else if ((TR >= 4'd10 && TR <= 4'd10) && (TC >= 5'd11 && TC <= 5'd11)) block = GRASS;
-		  else if ((TR >= 4'd9 && TR <= 4'd9) && (TC >= 5'd12 && TC <= 5'd14)) block = GRASS;
-		  else if ((TR >= 4'd10 && TR <= 4'd10) && (TC >= 5'd15 && TC <= 5'd15)) block = GRASS;
-		  else if ((TR >= 4'd11 && TR <= 4'd11) && (TC >= 5'd16 && TC <= 5'd17)) block = GRASS;
-		  else if ((TR >= 4'd10 && TR <= 4'd10) && (TC >= 5'd18 && TC <= 5'd19)) block = GRASS;
-		  
-		  else if ((TR >= 4'd7 && TR <= 4'd8) && (TC >= 5'd13 && TC <= 5'd13)) block = LOG;
-		  else if ((TR >= 4'd5 && TR <= 4'd6) && (TC >= 5'd12 && TC <= 5'd14)) block = LEAVES;
-		  
-		  else if ((TR >= 4'd10 && TR <= 4'd11) && (TC >= 5'd5 && TC <= 5'd6)) block = DIRT;
-		  else if ((TR >= 4'd9 && TR <= 4'd10) && (TC >= 5'd7 && TC <= 5'd8)) block = DIRT;
-		  else if ((TR >= 4'd10 && TR <= 4'd11) && (TC >= 5'd9 && TC <= 5'd10)) block = DIRT;
-		  else if ((TR >= 4'd11 && TR <= 4'd12) && (TC >= 5'd11 && TC <= 5'd11)) block = DIRT;
-		  else if ((TR >= 4'd10 && TR <= 4'd11) && (TC >= 5'd12 && TC <= 5'd14)) block = DIRT;
-		  else if ((TR >= 4'd11 && TR <= 4'd12) && (TC >= 5'd15 && TC <= 5'd15)) block = DIRT;
-		  else if ((TR >= 4'd12 && TR <= 4'd13) && (TC >= 5'd16 && TC <= 5'd17)) block = DIRT;
-		  else if ((TR >= 4'd11 && TR <= 4'd12) && (TC >= 5'd18 && TC <= 5'd19)) block = DIRT;
-		  
-		  else if ((TR >= 4'd14 && TR <= 4'd14) && (TC >= 5'd1 && TC <= 5'd1)) block = STONE;
-		  else if ((TR >= 4'd12 && TR <= 4'd12) && (TC >= 5'd5 && TC <= 5'd5)) block = STONE;
-		  else if ((TR >= 4'd11 && TR <= 4'd11) && (TC >= 5'd7 && TC <= 5'd8)) block = STONE;
-		  else if ((TR >= 4'd12 && TR <= 4'd12) && (TC >= 5'd8 && TC <= 5'd10)) block = STONE;
-		  else if ((TR >= 4'd13 && TR <= 4'd13) && (TC >= 5'd8 && TC <= 5'd9)) block = STONE;
-		  else if ((TR >= 4'd14 && TR <= 4'd14) && (TC >= 5'd7 && TC <= 5'd8)) block = STONE;
-		  else if ((TR >= 4'd12 && TR <= 4'd12) && (TC >= 5'd12 && TC <= 5'd13)) block = STONE;
-		  else if ((TR >= 4'd13 && TR <= 4'd14) && (TC >= 5'd11 && TC <= 5'd13)) block = STONE;
-		  else if ((TR >= 4'd14 && TR <= 4'd14) && (TC >= 5'd14 && TC <= 5'd16)) block = STONE;
-		  else if ((TR >= 4'd13 && TR <= 4'd14) && (TC >= 5'd18 && TC <= 5'd19)) block = STONE;
-		  
-		  else if ((TR >= 4'd13 && TR <= 4'd13) && (TC >= 5'd1 && TC <= 5'd2)) block = IRON;
-		  else if ((TR >= 4'd14 && TR <= 4'd14) && (TC >= 5'd2 && TC <= 5'd2)) block = IRON;
-		  else if ((TR >= 4'd12 && TR <= 4'd12) && (TC >= 5'd6 && TC <= 5'd7)) block = IRON;
-		  else if ((TR >= 4'd13 && TR <= 4'd13) && (TC >= 5'd7 && TC <= 5'd7)) block = IRON;
-		  else if ((TR >= 4'd13 && TR <= 4'd13) && (TC >= 5'd14 && TC <= 5'd15)) block = IRON;
-		  else if ((TR >= 4'd12 && TR <= 4'd12) && (TC >= 5'd14 && TC <= 5'd14)) block = IRON;
-		  
-		  else if ((TR >= 4'd13 && TR <= 4'd13) && (TC >= 5'd10 && TC <= 5'd10)) block = DIAMOND;
-		  else if ((TR >= 4'd14 && TR <= 4'd14) && (TC >= 5'd9 && TC <= 5'd10)) block = DIAMOND;
-		  else if ((TR >= 4'd14 && TR <= 4'd14) && (TC >= 5'd17 && TC <= 5'd17)) block = DIAMOND;
-		  
-		  
-        else block = AIR;
+		input wire [4:0] read2_col,
+		input wire [3:0] read2_row,
+		output wire [3:0] read2_block,
+		
+		input wire [4:0] read3_col,
+		input wire [3:0] read3_row,
+		output wire [3:0] read3_block,
+		
+		input wire [4:0] read4_col,
+		input wire [3:0] read4_row,
+		output wire [3:0] read4_block,
+		
+		input wire [4:0] read5_col,
+		input wire [3:0] read5_row,
+		output wire [3:0] read5_block,
+		
+		input wire [4:0] read6_col,
+		input wire [3:0] read6_row,
+		output wire [3:0] read6_block,
+		
+		input wire [4:0] read7_col,
+		input wire [3:0] read7_row,
+		output wire [3:0] read7_block,
+		
+		input wire [4:0] read8_col,
+		input wire [3:0] read8_row,
+		output wire [3:0] read8_block,
+		output wire read8_valid,
+		output wire [3:0] read8_above_block,
+		output wire [3:0] read8_below_block,
+		output wire [3:0] read8_left_block,
+		output wire [3:0] read8_right_block
+		);
+		
+		localparam STONE = 4'd3;
+		reg [3:0] seed [0:299]; // fixed starting layout 20x15
+		reg [3:0] tiles [0:14][0:19]; // live world tiles[row][col]
+		reg [8:0] init_address; // entry in the 1D seed
+		reg [3:0] init_row;
+		reg [4:0] init_col;
+		
+		initial begin 
+			$readmemh("./MIF/world_seed.hex", seed);
 		end
+			
+		// no game write accepted until the entire map is ready
+		
+		always @(posedge Clock) begin
+		
+			if (!Resetn) begin
+			
+				init_address <= 9'd0;
+				init_row <= 4'd0;
+				init_col <= 5'd0;
+				ready <= 1'b0;
+			end
+			else if (!ready) begin
+				
+				tiles[init_row][init_col] <= seed[init_address];
+				// tiles[init_row][init_col] <= (init_row < 4'd9) ? 4'd0 : (init_row == 4'd9) ? 4'd1 : 4'd2;
+				
+				if (init_address == 9'd299) begin
+					ready <= 1'b1;
+				end
+				else begin
+				
+					init_address <= init_address + 1'b1;
+					
+					if (init_col == 5'd19) begin 
+						init_col <= 5'd0;
+						init_row <= init_row + 1'b1;
+					end
+					else begin 
+						init_col <= init_col + 1'b1;
+					end
+				end
+			end
+			
+			else if (write_enable && write_col < 5'd20 && write_row < 4'd15) begin
+				tiles[write_row][write_col] <= write_block;
+			end
+		end
+		
+		// outside the screen is solid
+		
+		assign read0_block = (ready && read0_col < 5'd20 && read0_row < 4'd15) ? tiles[read0_row][read0_col] : STONE;
+		assign read1_block = (ready && read1_col < 5'd20 && read1_row < 4'd15) ? tiles[read1_row][read1_col] : STONE;
+		assign read2_block = (ready && read2_col < 5'd20 && read2_row < 4'd15) ? tiles[read2_row][read2_col] : STONE;
+		assign read3_block = (ready && read3_col < 5'd20 && read3_row < 4'd15) ? tiles[read3_row][read3_col] : STONE;
+		assign read4_block = (ready && read4_col < 5'd20 && read4_row < 4'd15) ? tiles[read4_row][read4_col] : STONE;
+		assign read5_block = (ready && read5_col < 5'd20 && read5_row < 4'd15) ? tiles[read5_row][read5_col] : STONE;
+		assign read6_block = (ready && read6_col < 5'd20 && read6_row < 4'd15) ? tiles[read6_row][read6_col] : STONE;
+		assign read7_block = (ready && read7_col < 5'd20 && read7_row < 4'd15) ? tiles[read7_row][read7_col] : STONE;
+		
+		// interaction controller supplies on sepected corrdinate on read8
+		assign read8_valid = ready && read8_col < 5'd20 && read8_row < 4'd15;
+		assign read8_block = read8_valid ? tiles[read8_row][read8_col] : STONE;
+		
+		// actual neighbours of the seelcted cell
+		
+		assign read8_above_block = (read8_valid && read8_row > 4'd0) ? tiles[read8_row - 4'd1][read8_col] : 4'd0;
+		assign read8_below_block = (read8_valid && read8_row < 4'd14) ? tiles[read8_row + 4'd1][read8_col] : 4'd0;
+		assign read8_left_block = (read8_valid && read8_col > 5'd0) ? tiles[read8_row][read8_col - 5'd1] : 4'd0;
+		assign read8_right_block = (read8_valid && read8_col < 5'd19) ? tiles[read8_row][read8_col + 5'd1] : 4'd0;
 		
 endmodule
 
@@ -447,8 +571,10 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
     reg Ltc, Etc, Ltr, Etr;              // load/enable for the tile counters
     reg Lxc, Exc, Lyc, Eyc;              // load/enable for the pixel counters
     reg write;                           // write this pixel (before the 1-cycle delay)
-    output wire [3:0] block;                     // block type at tile (TC, TR)
-	 reg [3:0] surface;
+    // output wire [3:0] block;                     // block type at tile (TC, TR)
+	 // reg [3:0] surface;
+	 input wire [3:0] block; // response from map
+	 
     reg [2:0] y_Q, Y_D;                  // FSM present/next state
     wire [COLOR_DEPTH-1:0] grass_color, dirt_color, stone_color, cobble_color, log_color, planks_color, leaves_color, iron_color, diamond_color; // texture memory outputs
 
@@ -462,23 +588,11 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
     upDn_count UYC (5'd0, Clock, Resetn, Lyc, Eyc, 1'b1, YC);  // pixel row in tile
         defparam UYC.n = 5;
 
-    // world seed: #1 (and the only one bro pls)
-	 block_map BMAP (TC, TR, block);
-		  
-	 always @(*)
-		case (TC)
-			default: surface = 4'd10;
-			5'd7, 5'd8: surface = 4'd8;
-			5'd5, 5'd6, 5'd9, 5'd10, 5'd12, 5'd13, 5'd14: surface = 4'd9;
-			5'd16, 5'd17: surface = 4'd11;
-		endcase
-
     // FSM state table
     always @(*)
         case (y_Q)
             A:  Y_D = B;                                       // reset
-            B:  if (block == AIR && TR < 4'd5) Y_D = E;                     // nothing to draw: next tile
-                else Y_D = C;                                  // otherwise draw it
+            B:  Y_D = C;                                       // draw every tile including AIR after reset  
             C:  if (XC != 5'd31) Y_D = C;                      // draw
                 else Y_D = D;
             D:  if (YC != 5'd31) Y_D = C;                      // next row of the tile (row as in 32 rows per block)
@@ -576,8 +690,11 @@ module world (Resetn, Clock, VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, b
 
 endmodule
 
-module steve (Resetn, Clock, go, step, scancode, key_up,
-              VGA_x, VGA_y, VGA_color, VGA_write, done, TC, TR, block);
+module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color, VGA_write, done,
+				  side_col, left_col, right_col,
+				  top_row, mid_row, bottom_row, below_row, above_row,
+				  s_top, s_mid, s_bot, d_left, d_right, u_left, u_right);
+				  
     parameter nX = 10, nY = 9, COLOR_DEPTH = 9;
     parameter X_INIT = 10'd320;          // starting x (left edge of Steve)
     parameter Y_INIT  = 9'd224;           // top edge: 9*32 - 64, so his feet touch the grass
@@ -594,9 +711,9 @@ module steve (Resetn, Clock, go, step, scancode, key_up,
     parameter FRONT = 3'd0, SIDE = 3'd1, WALK1 = 3'd2, WALK2 = 3'd3, HIT = 3'd4; // poses
     parameter A = 3'd0, B = 3'd1, C = 3'd2, D = 3'd3, E = 3'd4, F = 3'd5, G = 3'd6; // states
 
-	 input wire TC;
-	 input wire TR;
-	 input wire [3:0] block;
+	 output wire [4:0] side_col, left_col, right_col;
+	 output wire [3:0] top_row, mid_row, bottom_row, below_row, above_row;
+	 input wire [3:0] s_top, s_mid, s_bot, d_left, d_right, u_left, u_right;
 	 
     input wire Resetn, Clock;
     input wire go;                       // world finished: OK to draw Steve
@@ -639,20 +756,19 @@ module steve (Resetn, Clock, go, step, scancode, key_up,
 	 wire [8:0] YFEET = Y + 9'd63;
 	 wire [8:0] YBELOW = Y + 9'd64;
 	 wire [8:0] YABOVE = Y - VSTEP;
-	 wire [4:0] side_col = (scancode == KEY_A) ? XL [9:5] : XR [9:5];
-	 wire [3:0] s_top, s_mid, s_bot, d_left, d_right, u_left, u_right;
 	 
-	 block_map BT (side_col, Y[8:5], s_top);
-	 block_map BM (side_col, YMID[8:5], s_mid);
-	 block_map BB (side_col, YFEET[8:5], s_bot);
-	 block_map DL (X[9:5], YBELOW[8:5], d_left);
-	 block_map DR (XE[9:5], YBELOW[8:5], d_right);
-	 block_map UL (X[9:5], YABOVE[8:5], u_left);
-	 block_map UR (XE[9:5], YABOVE[8:5], u_right);
+	 assign side_col = (scancode == KEY_A) ? XL[9:5] : XR[9:5];
+	 assign left_col = X[9:5];
+	 assign right_col = XE [9:5];
+	 assign top_row = Y[8:5];
+	 assign mid_row = YMID[8:5];
+	 assign bottom_row = YFEET[8:5];
+	 assign below_row = YBELOW[8:5];
+	 assign above_row = YABOVE[8:5];
 	 
 	 wire side_blocked = (s_top != 4'd0) | (s_mid != 4'd0) | (s_bot != 4'd0);
 	 wire on_ground = (d_left != 4'd0) | (d_right != 4'd0);
-	 wire head_blocked = (u_left != 4'd0) | (u_right != 4'd0) | (Y <VSTEP);
+	 wire head_blocked = (u_left != 4'd0) | (u_right != 4'd0) | (Y < (9'd160 + VSTEP));
 	 wire airborne = (rise != 0) | (hang != 0) | !on_ground;
 	 
 	 always @ (posedge Clock)

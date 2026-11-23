@@ -1,0 +1,42 @@
+
+State Machine - |vga_demo|y_Q
+Name y_Q.D y_Q.C y_Q.B y_Q.A 
+y_Q.A 0 0 0 0 
+y_Q.B 0 0 1 1 
+y_Q.C 0 1 0 1 
+y_Q.D 1 0 0 1 
+
+State Machine - |vga_demo|last_code
+Name last_code.00101011 last_code.00101001 last_code.00100011 last_code.00000000 last_code.00011100 
+last_code.00000000 0 0 0 0 0 
+last_code.00011100 0 0 0 1 1 
+last_code.00100011 0 0 1 1 0 
+last_code.00101001 0 1 0 1 0 
+last_code.00101011 1 0 0 1 0 
+
+State Machine - |vga_demo|steve:S|y_Q
+Name y_Q.G y_Q.F y_Q.E y_Q.D y_Q.C y_Q.B y_Q.A 
+y_Q.A 0 0 0 0 0 0 0 
+y_Q.B 0 0 0 0 0 1 1 
+y_Q.C 0 0 0 0 1 0 1 
+y_Q.D 0 0 0 1 0 0 1 
+y_Q.E 0 0 1 0 0 0 1 
+y_Q.F 0 1 0 0 0 0 1 
+y_Q.G 1 0 0 0 0 0 1 
+
+State Machine - |vga_demo|steve:S|pose
+Name pose.WALK2 pose.WALK1 pose.SIDE pose.FRONT pose.HIT 
+pose.FRONT 0 0 0 0 0 
+pose.SIDE 0 0 1 1 0 
+pose.WALK1 0 1 0 1 0 
+pose.WALK2 1 0 0 1 0 
+pose.HIT 0 0 0 1 1 
+
+State Machine - |vga_demo|world:W|y_Q
+Name y_Q.F y_Q.E y_Q.D y_Q.C y_Q.B y_Q.A 
+y_Q.A 0 0 0 0 0 0 
+y_Q.B 0 0 0 0 1 1 
+y_Q.C 0 0 0 1 0 1 
+y_Q.D 0 0 1 0 0 1 
+y_Q.E 0 1 0 0 0 1 
+y_Q.F 1 0 0 0 0 1 

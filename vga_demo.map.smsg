@@ -1,1 +1,2 @@
-Info (10281): Verilog HDL Declaration information at vga_demo.v(478): object "STEP" differs only in case from object "step" in the same scope File: W:/ECE241/Project/mincraft_v0/vga_demo.v Line: 478
+Info (10281): Verilog HDL Declaration information at vga_demo.v(701): object "STEP" differs only in case from object "step" in the same scope File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 701
+Info (10281): Verilog HDL Declaration information at vga_demo.v(707): object "HANG" differs only in case from object "hang" in the same scope File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 707

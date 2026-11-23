@@ -6,7 +6,7 @@ JedecChain;
 	P ActionCode(Ign)
 		Device PartName(SOCVHPS) MfrSpec(OpMask(0));
 	P ActionCode(Cfg)
-		Device PartName(5CSEMA5F31) Path("W:/ECE241/Project/mincraft_v0/") File("vga_demo.sof") MfrSpec(OpMask(1));
+		Device PartName(5CSEMA5F31) Path("C:/Users/mohsina9/mincraft/") File("vga_demo.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 
