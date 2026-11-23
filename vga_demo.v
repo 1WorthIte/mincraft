@@ -47,8 +47,9 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	wire UI_write;
 	wire UI_busy;
 	
-	reg ui_started;
 	wire UI_start;
+	wire refresh_busy;
+	wire steve_force_redraw;
 	
 	wire world_done;
 	
@@ -197,7 +198,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		end
 		else begin
 			if (repeat_count != 22'd0) repeat_count <= repeat_count - 1'b1;
-			if ((y_Q == A) && S_done && request_update) begin
+			if ((y_Q == A) && S_done && !refresh_busy && request_update) begin
 				command_code <= wanted_code;
 				command_release <= (wanted_code == 8'h00);
 				
@@ -218,7 +219,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     // FSM state table
     always @ (*)
         case (y_Q)
-            A:  if (S_done && request_update) Y_D = B;
+			A:  if (S_done && !refresh_busy && request_update) Y_D = B;
                 else Y_D = A;
             B:  Y_D = C;        // enable scancode register
             C:  Y_D = D;        // send step signal to object
@@ -332,7 +333,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		.s_top(s_top), .s_mid(s_mid), .s_bot(s_bot),
 		.d_left(d_left), .d_right(d_right), .u_left(u_left), .u_right(u_right),
 		.player_x(steve_x), .player_y(steve_y),
-		.force_redraw(steve_force_redraw), .hold_steve(refresh_busy)
+		.force_draw(steve_force_redraw), .hold_steve(refresh_busy)
 		
 	);
 	
@@ -342,9 +343,9 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		.Resetn(Resetn),
 		.start(UI_start),
 		
-		.player_x(steve_x),
-		.player_y(steve_y),
-		.selected_index(SW[3:0]),
+		.player_x(frame_x),
+		.player_y(frame_y),
+		.selected_index(frame_selection),
 		
 		.busy(UI_busy),
 		
@@ -355,13 +356,91 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	
 	);
 	
-	assign UI_start = world_done && S_done && !ui_started;
-	
+	// Refresh the old outline tiles, then paint the new UI and Steve over them.
+	localparam R_IDLE = 4'd0, R_TILE = 4'd1, R_WAIT_TILE = 4'd2,
+	           R_NEXT_TILE = 4'd3, R_UI = 4'd4, R_WAIT_UI = 4'd5,
+	           R_STEVE = 4'd6, R_WAIT_STEVE_BUSY = 4'd7,
+	           R_WAIT_STEVE_DONE = 4'd8;
+	reg [3:0] refresh_state;
+	reg [1:0] restore_c, restore_r;
+	reg [9:0] drawn_x, frame_x;
+	reg [8:0] drawn_y, frame_y;
+	reg [3:0] drawn_selection, frame_selection;
+	reg drawn_valid, sprite_dirty;
+
+	wire refresh_pending = world_done && S_done && (y_Q == A) &&
+	                       (!drawn_valid || sprite_dirty ||
+	                        steve_x != drawn_x || steve_y != drawn_y ||
+	                        SW[3:0] != drawn_selection);
+	assign refresh_busy = (refresh_state != R_IDLE) || refresh_pending;
+
+	wire signed [6:0] restore_col = $signed({2'b00, drawn_x[9:5]}) +
+	                                $signed({5'b0, restore_c}) - 7'sd1;
+	wire signed [6:0] restore_row = $signed({3'b000, drawn_y[8:5]}) +
+	                                $signed({5'b0, restore_r}) - 7'sd1;
+	wire restore_valid = (restore_col >= 0) && (restore_col < 20) &&
+	                     (restore_row >= 5) && (restore_row < 15);
+	assign tile_redraw_col = restore_col[4:0];
+	assign tile_redraw_row = restore_row[3:0];
+	assign tile_redraw_req = (refresh_state == R_TILE) && restore_valid;
+	assign UI_start = (refresh_state == R_UI);
+	assign steve_force_redraw = (refresh_state == R_STEVE);
+
 	always @(posedge CLOCK_50) begin
-			if (!Resetn)
-				ui_started <= 1'b0;
-			else if (UI_start)
-				ui_started <= 1'b1;
+		if (!Resetn) begin
+			refresh_state <= R_IDLE;
+			restore_c <= 2'd0;
+			restore_r <= 2'd0;
+			drawn_x <= 10'd0;
+			drawn_y <= 9'd0;
+			drawn_selection <= 4'd0;
+			frame_x <= 10'd0;
+			frame_y <= 9'd0;
+			frame_selection <= 4'd0;
+			drawn_valid <= 1'b0;
+			sprite_dirty <= 1'b0;
+		end
+		else begin
+			if (refresh_state == R_IDLE && !S_done)
+				sprite_dirty <= 1'b1;
+			case (refresh_state)
+				R_IDLE: if (refresh_pending) begin
+					frame_x <= steve_x;
+					frame_y <= steve_y;
+					frame_selection <= SW[3:0];
+					restore_c <= 2'd0;
+					restore_r <= 2'd0;
+					refresh_state <= drawn_valid ? R_TILE : R_UI;
+				end
+				R_TILE: refresh_state <= restore_valid ? R_WAIT_TILE : R_NEXT_TILE;
+				R_WAIT_TILE: if (tile_redraw_done) refresh_state <= R_NEXT_TILE;
+				R_NEXT_TILE: if (restore_c == 2'd2) begin
+					restore_c <= 2'd0;
+					if (restore_r == 2'd3) refresh_state <= R_UI;
+					else begin
+						restore_r <= restore_r + 1'b1;
+						refresh_state <= R_TILE;
+					end
+				end
+				else begin
+					restore_c <= restore_c + 1'b1;
+					refresh_state <= R_TILE;
+				end
+				R_UI: refresh_state <= R_WAIT_UI;
+				R_WAIT_UI: if (!UI_busy) refresh_state <= R_STEVE;
+				R_STEVE: refresh_state <= R_WAIT_STEVE_BUSY;
+				R_WAIT_STEVE_BUSY: if (!S_done) refresh_state <= R_WAIT_STEVE_DONE;
+				R_WAIT_STEVE_DONE: if (S_done) begin
+					drawn_x <= frame_x;
+					drawn_y <= frame_y;
+					drawn_selection <= frame_selection;
+					drawn_valid <= 1'b1;
+					sprite_dirty <= 1'b0;
+					refresh_state <= R_IDLE;
+				end
+				default: refresh_state <= R_IDLE;
+			endcase
+		end
 	end
 	
     // choose x, y, color, and write for one of the two objects
