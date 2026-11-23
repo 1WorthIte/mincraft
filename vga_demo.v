@@ -195,7 +195,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	 regn UKU (command_release, Resetn, Esc, CLOCK_50, key_up);
 		defparam UKU.n = 1;
 		
-    assign LEDR = {2'b0,scancode};
+    assign LEDR = SW[9] ? {target_valid, selected_col, selected_row} : {2'b0, scancode}; // temporary SW testing
 	 
     // FSM state table
     always @ (*)
@@ -230,29 +230,43 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 				
 	// shared mutable block map
 	
-	wire map_ready;
-	wire [4:0] world_col, side_col, left_col, right_col;
-	wire [3:0] world_row, top_row, mid_row, bottom_row, below_row, above_row;
-	wire [3:0] world_block, s_top, s_mid, s_bot, d_left, d_right, u_left, u_right;
-	wire [3:0] selected_block;
-	wire selected_valid;
-	wire [3:0] selected_above_block, selected_below_block;
-	wire [3:0] selected_left_block, selected_right_block;
+		wire map_ready;
+		wire [4:0] world_col, side_col, left_col, right_col;
+		wire [3:0] world_row, top_row, mid_row, bottom_row, below_row, above_row;
+		wire [3:0] world_block, s_top, s_mid, s_bot, d_left, d_right, u_left, u_right;
+		wire [3:0] selected_block;
+		wire selected_valid;
+		wire [3:0] selected_above_block, selected_below_block;
+		wire [3:0] selected_left_block, selected_right_block;
+		
+		wire selected_has_neighbor;
+		wire map_write_enable;
+		
+		wire [4:0] map_write_col;
+		wire [3:0] map_write_row, map_write_block;
+		wire [4:0] selected_col;
+		wire [3:0] selected_row;
+		
+		wire [9:0] steve_x;
+		wire [8:0] steve_y;
+		wire target_valid;
+		
+		assign map_write_enable = 1'b0;
+		assign map_write_col = 5'd0;
+		assign map_write_row = 4'd0;
+		assign map_write_block = 4'd0;
 	
-	wire selected_has_neighbor;
-	wire map_write_enable;
-	
-	wire [4:0] map_write_col;
-	wire [3:0] map_write_row, map_write_block;
-	wire [4:0] selected_col;
-	wire [3:0] selected_row;
-	
-	assign map_write_enable = 1'b0;
-	assign map_write_col = 5'd0;
-	assign map_write_row = 4'd0;
-	assign map_write_block = 4'd0;
-	assign selected_col = 5'd0;
-	assign selected_row = 4'd0;
+		block_selector SELECTOR (
+										
+											.player_x(steve_x),
+											.player_y(steve_y),
+											.index(SW[3:0]), // temporary, keyboard not integrated
+											
+											.target_col(selected_col),
+											.target_row(selected_row),
+											.target_valid(target_valid)
+											
+										);
 	
 	assign selected_has_neighbor = (selected_above_block != 4'd0) || (selected_below_block != 4'd0) || (selected_left_block != 4'd0) || (selected_right_block != 4'd0);
 	
@@ -293,7 +307,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		.top_row(top_row), .mid_row(mid_row), .bottom_row(bottom_row),
 		.below_row(below_row), .above_row(above_row), 
 		.s_top(s_top), .s_mid(s_mid), .s_bot(s_bot),
-		.d_left(d_left), .d_right(d_right), .u_left(u_left), .u_right(u_right)
+		.d_left(d_left), .d_right(d_right), .u_left(u_left), .u_right(u_right),
+		.player_x(steve_x), .player_y(steve_y)
 		
 	);
 	
@@ -309,7 +324,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     hex7seg H2 (Serial[15:12], HEX2);
     hex7seg H3 (Serial[19:16], HEX3);
     hex7seg H4 (Serial[26:23], HEX4);
-    hex7seg H5 (Serial[30:27], HEX5);
+    hex7seg H5 (SW[9] ? selected_block : Serial[30:27], HEX5); // temporary, displays if selected block is right
 
     // connect to VGA controller
     vga_adapter VGA (
@@ -438,7 +453,7 @@ module block_map(
 		input wire [4:0] read0_col,
 		input wire [3:0] read0_row,
 		output wire [3:0] read0_block,
-		
+
 		input wire [4:0] read1_col,
 		input wire [3:0] read1_row,
 		output wire [3:0] read1_block,
@@ -693,7 +708,8 @@ endmodule
 module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color, VGA_write, done,
 				  side_col, left_col, right_col,
 				  top_row, mid_row, bottom_row, below_row, above_row,
-				  s_top, s_mid, s_bot, d_left, d_right, u_left, u_right);
+				  s_top, s_mid, s_bot, d_left, d_right, u_left, u_right,
+				  player_x, player_y);
 				  
     parameter nX = 10, nY = 9, COLOR_DEPTH = 9;
     parameter X_INIT = 10'd320;          // starting x (left edge of Steve)
@@ -713,6 +729,8 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
 
 	 output wire [4:0] side_col, left_col, right_col;
 	 output wire [3:0] top_row, mid_row, bottom_row, below_row, above_row;
+	 output wire [9:0] player_x;
+	 output wire [8:0] player_y;
 	 input wire [3:0] s_top, s_mid, s_bot, d_left, d_right, u_left, u_right;
 	 
     input wire Resetn, Clock;
@@ -740,6 +758,21 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
     wire [COLOR_DEPTH-1:0] front_c, side_c, walk1_c, walk2_c, hit_c; // sprite memory outputs
     reg [COLOR_DEPTH-1:0] obj_color;     // output of the currently selected sprite
     wire erase_d;                        // erase, delayed one clock
+	 
+	 // ADD OUTLINE AROUND STEVE:
+	 
+		wire outline;
+		wire outline_d;
+		
+		assign outline = (XC == 5'd0) ||   // left edge
+							  (XC == 5'd31) ||  // right edge
+							  (YC == 6'd0) ||   // top edge
+							  (YC == 6'd63);    // bottom edge
+							  
+	 // selection:
+	 
+		assign player_x = X;
+		assign player_y = Y;
 	 
 	 reg [nY-1 : 0] Y;
 	 reg [5:0] rise;
@@ -928,10 +961,89 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
         defparam UW.n = 1;
     regn UE (erase, Resetn, 1'b1, Clock, erase_d);
         defparam UE.n = 1;
+	 regn UO (outline, Resetn, 1'b1, Clock, outline_d);
+		  defparam UO.n = 1;
 
-    assign VGA_color = erase_d ? SKY : obj_color;              // erase paints sky colour
+	 // erase paints sky colour
     // only touch pixels that are part of Steve (erase uses the OLD pose, since update
     // happens after the erase, so this erases exactly the old outline)
-    assign VGA_write = write_d & (obj_color != TRANSPARENT);
+	 
+    assign VGA_color = erase_d ? SKY :      // erasing old pos steve
+							  outline_d ? 9'h000:  // drawing outline pixel
+							  obj_color;           // original sprite color otherwise
+	 
+	 
+    assign VGA_write = write_d && (outline_d || (obj_color != TRANSPARENT));
 
+endmodule
+
+module block_selector (
+
+								input wire [9:0] player_x,
+								input wire [8:0] player_y,
+								input wire [3:0] index,
+								
+								output wire [4:0] target_col,
+								output wire [3:0] target_row,
+								output wire target_valid
+
+							  );
+							  
+	// convert steve's pixel positions into tile coords
+	
+	wire signed [6:0] player_col = {2'b00, player_x[9:5]};
+	wire signed [6:0] player_row = {3'b000, player_y[8:5]};
+	
+	// offset of the selected block relative to steve
+	reg signed [6:0] dx, dy;
+	
+	always @ (*) begin
+	
+		dx = 0;
+		dy = 0;
+		
+		case (index)
+		
+			/*
+			
+			-----------------
+			| 0 |   1   | 2 |
+			-----------------
+			| 3 | STEVE | 4 |
+			-----------------
+			| 5 | STEVE | 6 |
+			-----------------
+			| 7 |   8   | 9 | 
+			-----------------
+			
+			*/
+			
+			4'd0: begin dx = -1; dy = -1; end
+			4'd1: begin dx =  0; dy = -1; end
+			4'd2: begin dx =  1; dy = -1; end
+			
+			4'd3: begin dx = -1; dy =  0; end
+			4'd4: begin dx =  1; dy =  0; end
+			
+			4'd5: begin dx = -1; dy =  1; end
+			4'd6: begin dx =  1; dy =  1; end
+			
+			4'd7: begin dx = -1; dy =  2; end
+			4'd8: begin dx =  0; dy =  2; end
+			4'd9: begin dx =  1; dy =  2; end
+			
+			default: begin dx = 0; dy = 0; end
+		endcase
+	end
+	
+	wire signed [6:0] col = player_col + dx;
+	wire signed [6:0] row = player_row + dy;
+	
+	// valid only inside playable area
+	
+	assign target_valid = (index < 4'd10) && (col >= 0) && (col < 20) && (row >= 5) && (row < 15);
+	
+	assign target_col = target_valid ? col[4:0] : 5'd0;
+	assign target_row = target_valid ? row[3:0] : 4'd0;
+	
 endmodule

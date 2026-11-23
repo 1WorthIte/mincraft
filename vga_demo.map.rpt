@@ -1,5 +1,5 @@
 Analysis & Synthesis report for vga_demo
-Sun Nov 22 19:39:07 2026
+Mon Nov 23 15:13:46 2026
 Quartus Prime Version 23.1std.0 Build 991 11/28/2023 SC Lite Edition
 
 
@@ -84,32 +84,34 @@ Quartus Prime Version 23.1std.0 Build 991 11/28/2023 SC Lite Edition
  76. Parameter Settings for User Entity Instance: steve:S|regn:UY
  77. Parameter Settings for User Entity Instance: steve:S|regn:UW
  78. Parameter Settings for User Entity Instance: steve:S|regn:UE
- 79. Parameter Settings for User Entity Instance: vga_adapter:VGA
- 80. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_address_translator:user_input_translator
- 81. Parameter Settings for User Entity Instance: vga_adapter:VGA|altsyncram:VideoMemory
- 82. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_pll:mypll|altpll:altpll_component
- 83. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_controller:controller
- 84. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_controller:controller|vga_address_translator:controller_translator
- 85. altsyncram Parameter Settings by Entity Instance
- 86. altpll Parameter Settings by Entity Instance
- 87. Port Connectivity Checks: "steve:S|regn:UE"
- 88. Port Connectivity Checks: "steve:S|regn:UW"
- 89. Port Connectivity Checks: "steve:S|regn:UY"
- 90. Port Connectivity Checks: "steve:S|regn:UX"
- 91. Port Connectivity Checks: "steve:S|upDn_count:UYC"
- 92. Port Connectivity Checks: "steve:S|upDn_count:UXC"
- 93. Port Connectivity Checks: "world:W|regn:UW"
- 94. Port Connectivity Checks: "world:W|regn:UY"
- 95. Port Connectivity Checks: "world:W|regn:UX"
- 96. Port Connectivity Checks: "world:W|upDn_count:UYC"
- 97. Port Connectivity Checks: "world:W|upDn_count:UXC"
- 98. Port Connectivity Checks: "world:W|upDn_count:UTR"
- 99. Port Connectivity Checks: "world:W|upDn_count:UTC"
-100. Port Connectivity Checks: "block_map:MAP"
-101. Post-Synthesis Netlist Statistics for Top Partition
-102. Elapsed Time Per Partition
-103. Analysis & Synthesis Messages
-104. Analysis & Synthesis Suppressed Messages
+ 79. Parameter Settings for User Entity Instance: steve:S|regn:UO
+ 80. Parameter Settings for User Entity Instance: vga_adapter:VGA
+ 81. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_address_translator:user_input_translator
+ 82. Parameter Settings for User Entity Instance: vga_adapter:VGA|altsyncram:VideoMemory
+ 83. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_pll:mypll|altpll:altpll_component
+ 84. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_controller:controller
+ 85. Parameter Settings for User Entity Instance: vga_adapter:VGA|vga_controller:controller|vga_address_translator:controller_translator
+ 86. altsyncram Parameter Settings by Entity Instance
+ 87. altpll Parameter Settings by Entity Instance
+ 88. Port Connectivity Checks: "steve:S|regn:UO"
+ 89. Port Connectivity Checks: "steve:S|regn:UE"
+ 90. Port Connectivity Checks: "steve:S|regn:UW"
+ 91. Port Connectivity Checks: "steve:S|regn:UY"
+ 92. Port Connectivity Checks: "steve:S|regn:UX"
+ 93. Port Connectivity Checks: "steve:S|upDn_count:UYC"
+ 94. Port Connectivity Checks: "steve:S|upDn_count:UXC"
+ 95. Port Connectivity Checks: "world:W|regn:UW"
+ 96. Port Connectivity Checks: "world:W|regn:UY"
+ 97. Port Connectivity Checks: "world:W|regn:UX"
+ 98. Port Connectivity Checks: "world:W|upDn_count:UYC"
+ 99. Port Connectivity Checks: "world:W|upDn_count:UXC"
+100. Port Connectivity Checks: "world:W|upDn_count:UTR"
+101. Port Connectivity Checks: "world:W|upDn_count:UTC"
+102. Port Connectivity Checks: "block_map:MAP"
+103. Post-Synthesis Netlist Statistics for Top Partition
+104. Elapsed Time Per Partition
+105. Analysis & Synthesis Messages
+106. Analysis & Synthesis Suppressed Messages
 
 
 
@@ -136,13 +138,13 @@ https://fpgasoftware.intel.com/eula.
 +----------------------------------------------------------------------------------+
 ; Analysis & Synthesis Summary                                                     ;
 +---------------------------------+------------------------------------------------+
-; Analysis & Synthesis Status     ; Successful - Sun Nov 22 19:39:07 2026          ;
+; Analysis & Synthesis Status     ; Successful - Mon Nov 23 15:13:46 2026          ;
 ; Quartus Prime Version           ; 23.1std.0 Build 991 11/28/2023 SC Lite Edition ;
 ; Revision Name                   ; vga_demo                                       ;
 ; Top-level Entity Name           ; vga_demo                                       ;
 ; Family                          ; Cyclone V                                      ;
 ; Logic utilization (in ALMs)     ; N/A                                            ;
-; Total registers                 ; 1477                                           ;
+; Total registers                 ; 1478                                           ;
 ; Total pins                      ; 98                                             ;
 ; Total virtual pins              ; 0                                              ;
 ; Total block memory bits         ; 2,921,472                                      ;
@@ -331,16 +333,16 @@ https://fpgasoftware.intel.com/eula.
 +---------------------------------------------+----------------+
 ; Resource                                    ; Usage          ;
 +---------------------------------------------+----------------+
-; Estimate of Logic utilization (ALMs needed) ; 2663           ;
+; Estimate of Logic utilization (ALMs needed) ; 3076           ;
 ;                                             ;                ;
-; Combinational ALUT usage for logic          ; 2854           ;
-;     -- 7 input functions                    ; 10             ;
-;     -- 6 input functions                    ; 2225           ;
-;     -- 5 input functions                    ; 195            ;
-;     -- 4 input functions                    ; 158            ;
-;     -- <=3 input functions                  ; 266            ;
+; Combinational ALUT usage for logic          ; 3314           ;
+;     -- 7 input functions                    ; 9              ;
+;     -- 6 input functions                    ; 2596           ;
+;     -- 5 input functions                    ; 282            ;
+;     -- 4 input functions                    ; 145            ;
+;     -- <=3 input functions                  ; 282            ;
 ;                                             ;                ;
-; Dedicated logic registers                   ; 1477           ;
+; Dedicated logic registers                   ; 1478           ;
 ;                                             ;                ;
 ; I/O pins                                    ; 98             ;
 ; Total MLAB memory bits                      ; 0              ;
@@ -352,9 +354,9 @@ https://fpgasoftware.intel.com/eula.
 ;     -- PLLs                                 ; 1              ;
 ;                                             ;                ;
 ; Maximum fan-out node                        ; CLOCK_50~input ;
-; Maximum fan-out                             ; 1899           ;
-; Total fan-out                               ; 32241          ;
-; Average fan-out                             ; 6.46           ;
+; Maximum fan-out                             ; 1900           ;
+; Total fan-out                               ; 34905          ;
+; Average fan-out                             ; 6.40           ;
 +---------------------------------------------+----------------+
 
 
@@ -363,17 +365,18 @@ https://fpgasoftware.intel.com/eula.
 +---------------------------------------------------------+---------------------+---------------------------+-------------------+------------+------+--------------+----------------------------------------------------------------------------------------------------------+------------------------+--------------+
 ; Compilation Hierarchy Node                              ; Combinational ALUTs ; Dedicated Logic Registers ; Block Memory Bits ; DSP Blocks ; Pins ; Virtual Pins ; Full Hierarchy Name                                                                                      ; Entity Name            ; Library Name ;
 +---------------------------------------------------------+---------------------+---------------------------+-------------------+------------+------+--------------+----------------------------------------------------------------------------------------------------------+------------------------+--------------+
-; |vga_demo                                               ; 2854 (155)          ; 1477 (79)                 ; 2921472           ; 0          ; 98   ; 0            ; |vga_demo                                                                                                ; vga_demo               ; work         ;
-;    |block_map:MAP|                                      ; 2091 (2091)         ; 1219 (1219)               ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|block_map:MAP                                                                                  ; block_map              ; work         ;
+; |vga_demo                                               ; 3314 (583)          ; 1478 (79)                 ; 2921472           ; 0          ; 98   ; 0            ; |vga_demo                                                                                                ; vga_demo               ; work         ;
+;    |block_map:MAP|                                      ; 2094 (2094)         ; 1219 (1219)               ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|block_map:MAP                                                                                  ; block_map              ; work         ;
+;    |block_selector:SELECTOR|                            ; 25 (25)             ; 0 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|block_selector:SELECTOR                                                                        ; block_selector         ; work         ;
 ;    |hex7seg:H0|                                         ; 7 (7)               ; 0 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|hex7seg:H0                                                                                     ; hex7seg                ; work         ;
 ;    |hex7seg:H1|                                         ; 7 (7)               ; 0 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|hex7seg:H1                                                                                     ; hex7seg                ; work         ;
 ;    |hex7seg:H2|                                         ; 7 (7)               ; 0 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|hex7seg:H2                                                                                     ; hex7seg                ; work         ;
 ;    |hex7seg:H3|                                         ; 7 (7)               ; 0 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|hex7seg:H3                                                                                     ; hex7seg                ; work         ;
 ;    |hex7seg:H4|                                         ; 7 (7)               ; 0 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|hex7seg:H4                                                                                     ; hex7seg                ; work         ;
 ;    |hex7seg:H5|                                         ; 7 (7)               ; 0 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|hex7seg:H5                                                                                     ; hex7seg                ; work         ;
-;    |regn:UKU|                                           ; 1 (1)               ; 1 (1)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|regn:UKU                                                                                       ; regn                   ; work         ;
-;    |regn:USC|                                           ; 5 (5)               ; 4 (4)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|regn:USC                                                                                       ; regn                   ; work         ;
-;    |steve:S|                                            ; 240 (224)           ; 87 (55)                   ; 73728             ; 0          ; 0    ; 0            ; |vga_demo|steve:S                                                                                        ; steve                  ; work         ;
+;    |regn:UKU|                                           ; 2 (2)               ; 1 (1)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|regn:UKU                                                                                       ; regn                   ; work         ;
+;    |regn:USC|                                           ; 4 (4)               ; 4 (4)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|regn:USC                                                                                       ; regn                   ; work         ;
+;    |steve:S|                                            ; 244 (228)           ; 88 (55)                   ; 73728             ; 0          ; 0    ; 0            ; |vga_demo|steve:S                                                                                        ; steve                  ; work         ;
 ;       |object_mem:M0|                                   ; 0 (0)               ; 0 (0)                     ; 18432             ; 0          ; 0    ; 0            ; |vga_demo|steve:S|object_mem:M0                                                                          ; object_mem             ; work         ;
 ;          |altsyncram:altsyncram_component|              ; 0 (0)               ; 0 (0)                     ; 18432             ; 0          ; 0    ; 0            ; |vga_demo|steve:S|object_mem:M0|altsyncram:altsyncram_component                                          ; altsyncram             ; work         ;
 ;             |altsyncram_o7h1:auto_generated|            ; 0 (0)               ; 0 (0)                     ; 18432             ; 0          ; 0    ; 0            ; |vga_demo|steve:S|object_mem:M0|altsyncram:altsyncram_component|altsyncram_o7h1:auto_generated           ; altsyncram_o7h1        ; work         ;
@@ -387,6 +390,7 @@ https://fpgasoftware.intel.com/eula.
 ;          |altsyncram:altsyncram_component|              ; 0 (0)               ; 0 (0)                     ; 18432             ; 0          ; 0    ; 0            ; |vga_demo|steve:S|object_mem:M4|altsyncram:altsyncram_component                                          ; altsyncram             ; work         ;
 ;             |altsyncram_2eh1:auto_generated|            ; 0 (0)               ; 0 (0)                     ; 18432             ; 0          ; 0    ; 0            ; |vga_demo|steve:S|object_mem:M4|altsyncram:altsyncram_component|altsyncram_2eh1:auto_generated           ; altsyncram_2eh1        ; work         ;
 ;       |regn:UE|                                         ; 0 (0)               ; 1 (1)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|steve:S|regn:UE                                                                                ; regn                   ; work         ;
+;       |regn:UO|                                         ; 0 (0)               ; 1 (1)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|steve:S|regn:UO                                                                                ; regn                   ; work         ;
 ;       |regn:UW|                                         ; 0 (0)               ; 1 (1)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|steve:S|regn:UW                                                                                ; regn                   ; work         ;
 ;       |regn:UX|                                         ; 0 (0)               ; 10 (10)                   ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|steve:S|regn:UX                                                                                ; regn                   ; work         ;
 ;       |regn:UY|                                         ; 0 (0)               ; 9 (9)                     ; 0                 ; 0          ; 0    ; 0            ; |vga_demo|steve:S|regn:UY                                                                                ; regn                   ; work         ;
@@ -595,8 +599,8 @@ Encoding Type:  One-Hot
 +----------------------------------------------+-------+
 ; Statistic                                    ; Value ;
 +----------------------------------------------+-------+
-; Total registers                              ; 1477  ;
-; Number of registers using Synchronous Clear  ; 168   ;
+; Total registers                              ; 1478  ;
+; Number of registers using Synchronous Clear  ; 169   ;
 ; Number of registers using Synchronous Load   ; 15    ;
 ; Number of registers using Asynchronous Clear ; 20    ;
 ; Number of registers using Asynchronous Load  ; 0     ;
@@ -610,49 +614,50 @@ Encoding Type:  One-Hot
 +--------------------+-----------+---------------+----------------------+------------------------+------------+-------------------------------------------------------------------------------------------------------------------+
 ; Multiplexer Inputs ; Bus Width ; Baseline Area ; Area if Restructured ; Saving if Restructured ; Registered ; Example Multiplexer Output                                                                                        ;
 +--------------------+-----------+---------------+----------------------+------------------------+------------+-------------------------------------------------------------------------------------------------------------------+
-; 3:1                ; 5 bits    ; 10 LEs        ; 5 LEs                ; 5 LEs                  ; Yes        ; |vga_demo|regn:USC|Q[0]                                                                                           ;
-; 3:1                ; 5 bits    ; 10 LEs        ; 5 LEs                ; 5 LEs                  ; Yes        ; |vga_demo|command_code[0]                                                                                         ;
-; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |vga_demo|Serial[7]                                                                                               ;
-; 3:1                ; 4 bits    ; 8 LEs         ; 4 LEs                ; 4 LEs                  ; Yes        ; |vga_demo|Packet[2]                                                                                               ;
-; 3:1                ; 10 bits   ; 20 LEs        ; 0 LEs                ; 20 LEs                 ; Yes        ; |vga_demo|vga_adapter:VGA|vga_controller:controller|yCounter[4]                                                   ;
-; 3:1                ; 9 bits    ; 18 LEs        ; 0 LEs                ; 18 LEs                 ; Yes        ; |vga_demo|block_map:MAP|init_address[8]                                                                           ;
-; 3:1                ; 4 bits    ; 8 LEs         ; 4 LEs                ; 4 LEs                  ; Yes        ; |vga_demo|block_map:MAP|init_row[0]                                                                               ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UXC|Q[0]                                                                             ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UYC|Q[2]                                                                             ;
-; 4:1                ; 3 bits    ; 6 LEs         ; 6 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|Y[6]                                                                                            ;
+; 3:1                ; 5 bits    ; 10 LEs        ; 5 LEs                ; 5 LEs                  ; Yes        ; |vga_demo|regn:UKU|Q[0]                                                                                           ;
+; 3:1                ; 5 bits    ; 10 LEs        ; 5 LEs                ; 5 LEs                  ; Yes        ; |vga_demo|command_code[3]                                                                                         ;
+; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |vga_demo|Serial[15]                                                                                              ;
+; 3:1                ; 4 bits    ; 8 LEs         ; 4 LEs                ; 4 LEs                  ; Yes        ; |vga_demo|Packet[1]                                                                                               ;
+; 3:1                ; 10 bits   ; 20 LEs        ; 0 LEs                ; 20 LEs                 ; Yes        ; |vga_demo|vga_adapter:VGA|vga_controller:controller|yCounter[0]                                                   ;
+; 3:1                ; 9 bits    ; 18 LEs        ; 0 LEs                ; 18 LEs                 ; Yes        ; |vga_demo|block_map:MAP|init_address[2]                                                                           ;
+; 3:1                ; 4 bits    ; 8 LEs         ; 4 LEs                ; 4 LEs                  ; Yes        ; |vga_demo|block_map:MAP|init_row[3]                                                                               ;
+; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UXC|Q[3]                                                                             ;
+; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UYC|Q[4]                                                                             ;
+; 4:1                ; 3 bits    ; 6 LEs         ; 6 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|Y[7]                                                                                            ;
 ; 4:1                ; 3 bits    ; 6 LEs         ; 6 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|Y[8]                                                                                            ;
 ; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|hang[2]                                                                                         ;
-; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|X[6]                                                                                            ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|X[9]                                                                                            ;
-; 4:1                ; 6 bits    ; 12 LEs        ; 12 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|upDn_count:UYC|Q[0]                                                                             ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|upDn_count:UXC|Q[3]                                                                             ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UTC|Q[3]                                                                             ;
-; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UTR|Q[1]                                                                             ;
+; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|X[8]                                                                                            ;
+; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|X[4]                                                                                            ;
+; 4:1                ; 6 bits    ; 12 LEs        ; 12 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|upDn_count:UYC|Q[4]                                                                             ;
+; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|steve:S|upDn_count:UXC|Q[1]                                                                             ;
+; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UTC|Q[0]                                                                             ;
+; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |vga_demo|world:W|upDn_count:UTR|Q[3]                                                                             ;
 ; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |vga_demo|block_map:MAP|init_col[4]                                                                               ;
-; 4:1                ; 22 bits   ; 44 LEs        ; 22 LEs               ; 22 LEs                 ; Yes        ; |vga_demo|repeat_count[5]                                                                                         ;
-; 5:1                ; 3 bits    ; 9 LEs         ; 6 LEs                ; 3 LEs                  ; Yes        ; |vga_demo|steve:S|rise[3]                                                                                         ;
+; 4:1                ; 22 bits   ; 44 LEs        ; 22 LEs               ; 22 LEs                 ; Yes        ; |vga_demo|repeat_count[17]                                                                                        ;
+; 5:1                ; 3 bits    ; 9 LEs         ; 6 LEs                ; 3 LEs                  ; Yes        ; |vga_demo|steve:S|rise[4]                                                                                         ;
+; 4:1                ; 60 bits   ; 120 LEs       ; 120 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux307                                                                                    ;
 ; 3:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; No         ; |vga_demo|last_code                                                                                               ;
-; 4:1                ; 60 bits   ; 120 LEs       ; 120 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux303                                                                                    ;
-; 4:1                ; 60 bits   ; 120 LEs       ; 120 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux357                                                                                    ;
-; 4:1                ; 60 bits   ; 120 LEs       ; 120 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux70                                                                                     ;
-; 5:1                ; 9 bits    ; 27 LEs        ; 27 LEs               ; 0 LEs                  ; No         ; |vga_demo|vga_adapter:VGA|altsyncram:VideoMemory|altsyncram_l9n1:auto_generated|mux_khb:mux3|l3_w2_n4_mux_dataout ;
+; 4:1                ; 60 bits   ; 120 LEs       ; 120 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux323                                                                                    ;
+; 4:1                ; 60 bits   ; 120 LEs       ; 120 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux73                                                                                     ;
+; 5:1                ; 9 bits    ; 27 LEs        ; 27 LEs               ; 0 LEs                  ; No         ; |vga_demo|vga_adapter:VGA|altsyncram:VideoMemory|altsyncram_l9n1:auto_generated|mux_khb:mux3|l3_w6_n4_mux_dataout ;
 ; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; No         ; |vga_demo|wanted_code.00000000                                                                                    ;
-; 5:1                ; 9 bits    ; 27 LEs        ; 27 LEs               ; 0 LEs                  ; No         ; |vga_demo|steve:S|Selector11                                                                                      ;
+; 5:1                ; 9 bits    ; 27 LEs        ; 27 LEs               ; 0 LEs                  ; No         ; |vga_demo|steve:S|Selector9                                                                                       ;
 ; 6:1                ; 2 bits    ; 8 LEs         ; 6 LEs                ; 2 LEs                  ; No         ; |vga_demo|steve:S|pose                                                                                            ;
 ; 7:1                ; 3 bits    ; 12 LEs        ; 12 LEs               ; 0 LEs                  ; No         ; |vga_demo|steve:S|pose                                                                                            ;
-; 18:1               ; 9 bits    ; 108 LEs       ; 72 LEs               ; 36 LEs                 ; No         ; |vga_demo|MUX_color[2]                                                                                            ;
-; 16:1               ; 60 bits   ; 600 LEs       ; 600 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux309                                                                                    ;
-; 16:1               ; 60 bits   ; 600 LEs       ; 600 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux359                                                                                    ;
-; 16:1               ; 60 bits   ; 600 LEs       ; 600 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux104                                                                                    ;
-; 33:1               ; 9 bits    ; 198 LEs       ; 198 LEs              ; 0 LEs                  ; No         ; |vga_demo|vga_adapter:VGA|altsyncram:VideoMemory|altsyncram_l9n1:auto_generated|mux_khb:mux3|l6_w7_n0_mux_dataout ;
-; 301:1              ; 4 bits    ; 800 LEs       ; 800 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read0_block[0]                                                                            ;
-; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read4_block[3]                                                                            ;
-; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read6_block[1]                                                                            ;
-; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read5_block[1]                                                                            ;
-; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read7_block[3]                                                                            ;
+; 19:1               ; 9 bits    ; 108 LEs       ; 72 LEs               ; 36 LEs                 ; No         ; |vga_demo|MUX_color[8]                                                                                            ;
+; 16:1               ; 60 bits   ; 600 LEs       ; 600 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux275                                                                                    ;
+; 16:1               ; 60 bits   ; 600 LEs       ; 600 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux348                                                                                    ;
+; 16:1               ; 60 bits   ; 600 LEs       ; 600 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|Mux70                                                                                     ;
+; 33:1               ; 9 bits    ; 198 LEs       ; 198 LEs              ; 0 LEs                  ; No         ; |vga_demo|vga_adapter:VGA|altsyncram:VideoMemory|altsyncram_l9n1:auto_generated|mux_khb:mux3|l6_w8_n0_mux_dataout ;
+; 301:1              ; 4 bits    ; 800 LEs       ; 800 LEs              ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read0_block[2]                                                                            ;
+; 302:1              ; 4 bits    ; 804 LEs       ; 804 LEs              ; 0 LEs                  ; No         ; |vga_demo|comb                                                                                                    ;
+; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read4_block[1]                                                                            ;
+; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read6_block[0]                                                                            ;
+; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read5_block[0]                                                                            ;
+; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read7_block[0]                                                                            ;
 ; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read1_block[1]                                                                            ;
 ; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read2_block[0]                                                                            ;
-; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read3_block[0]                                                                            ;
+; 31:1               ; 4 bits    ; 80 LEs        ; 80 LEs               ; 0 LEs                  ; No         ; |vga_demo|block_map:MAP|read3_block[1]                                                                            ;
 +--------------------+-----------+---------------+----------------------+------------------------+------------+-------------------------------------------------------------------------------------------------------------------+
 
 
@@ -2048,6 +2053,16 @@ Note: In order to hide this table in the UI and the text report file, please set
 
 
 +--------------------------------------------------------------+
+; Parameter Settings for User Entity Instance: steve:S|regn:UO ;
++----------------+-------+-------------------------------------+
+; Parameter Name ; Value ; Type                                ;
++----------------+-------+-------------------------------------+
+; n              ; 1     ; Signed Integer                      ;
++----------------+-------+-------------------------------------+
+Note: In order to hide this table in the UI and the text report file, please set the "Show Parameter Settings in Synthesis Report" option in "Analysis and Synthesis Settings -> More Settings" to "Off".
+
+
++--------------------------------------------------------------+
 ; Parameter Settings for User Entity Instance: vga_adapter:VGA ;
 +------------------+----------------------+--------------------+
 ; Parameter Name   ; Value                ; Type               ;
@@ -2740,6 +2755,15 @@ Note: In order to hide this table in the UI and the text report file, please set
 
 
 +---------------------------------------------+
+; Port Connectivity Checks: "steve:S|regn:UO" ;
++------+-------+----------+-------------------+
+; Port ; Type  ; Severity ; Details           ;
++------+-------+----------+-------------------+
+; E    ; Input ; Info     ; Stuck at VCC      ;
++------+-------+----------+-------------------+
+
+
++---------------------------------------------+
 ; Port Connectivity Checks: "steve:S|regn:UE" ;
 +------+-------+----------+-------------------+
 ; Port ; Type  ; Severity ; Details           ;
@@ -2871,9 +2895,6 @@ Note: In order to hide this table in the UI and the text report file, please set
 ; write_col         ; Input  ; Info     ; Stuck at GND                                                                        ;
 ; write_row         ; Input  ; Info     ; Stuck at GND                                                                        ;
 ; write_block       ; Input  ; Info     ; Stuck at GND                                                                        ;
-; read8_col         ; Input  ; Info     ; Stuck at GND                                                                        ;
-; read8_row         ; Input  ; Info     ; Stuck at GND                                                                        ;
-; read8_block       ; Output ; Info     ; Connected to dangling logic. Logic that only feeds a dangling port will be removed. ;
 ; read8_valid       ; Output ; Info     ; Connected to dangling logic. Logic that only feeds a dangling port will be removed. ;
 ; read8_above_block ; Output ; Info     ; Connected to dangling logic. Logic that only feeds a dangling port will be removed. ;
 ; read8_below_block ; Output ; Info     ; Connected to dangling logic. Logic that only feeds a dangling port will be removed. ;
@@ -2887,34 +2908,34 @@ Note: In order to hide this table in the UI and the text report file, please set
 +-----------------------+-----------------------------+
 ; Type                  ; Count                       ;
 +-----------------------+-----------------------------+
-; arriav_ff             ; 1477                        ;
+; arriav_ff             ; 1478                        ;
 ;     CLR SCLR          ; 10                          ;
 ;     ENA               ; 1250                        ;
 ;     ENA CLR SCLR      ; 10                          ;
 ;     ENA SCLR          ; 69                          ;
 ;     ENA SLD           ; 13                          ;
-;     SCLR              ; 79                          ;
+;     SCLR              ; 80                          ;
 ;     SLD               ; 2                           ;
 ;     plain             ; 44                          ;
 ; arriav_io_obuf        ; 2                           ;
-; arriav_lcell_comb     ; 2861                        ;
-;     arith             ; 138                         ;
+; arriav_lcell_comb     ; 3321                        ;
+;     arith             ; 151                         ;
 ;         0 data inputs ; 2                           ;
 ;         1 data inputs ; 101                         ;
 ;         2 data inputs ; 17                          ;
 ;         3 data inputs ; 7                           ;
-;         4 data inputs ; 9                           ;
-;         5 data inputs ; 2                           ;
-;     extend            ; 10                          ;
-;         7 data inputs ; 10                          ;
-;     normal            ; 2701                        ;
+;         4 data inputs ; 13                          ;
+;         5 data inputs ; 11                          ;
+;     extend            ; 9                           ;
+;         7 data inputs ; 9                           ;
+;     normal            ; 3149                        ;
 ;         0 data inputs ; 2                           ;
 ;         1 data inputs ; 6                           ;
-;         2 data inputs ; 64                          ;
-;         3 data inputs ; 62                          ;
-;         4 data inputs ; 149                         ;
-;         5 data inputs ; 193                         ;
-;         6 data inputs ; 2225                        ;
+;         2 data inputs ; 68                          ;
+;         3 data inputs ; 74                          ;
+;         4 data inputs ; 132                         ;
+;         5 data inputs ; 271                         ;
+;         6 data inputs ; 2596                        ;
 ;     shared            ; 12                          ;
 ;         0 data inputs ; 1                           ;
 ;         1 data inputs ; 2                           ;
@@ -2925,7 +2946,7 @@ Note: In order to hide this table in the UI and the text report file, please set
 ; stratixv_ram_block    ; 459                         ;
 ;                       ;                             ;
 ; Max LUT depth         ; 10.50                       ;
-; Average LUT depth     ; 6.15                        ;
+; Average LUT depth     ; 6.50                        ;
 +-----------------------+-----------------------------+
 
 
@@ -2944,7 +2965,7 @@ Note: In order to hide this table in the UI and the text report file, please set
 Info: *******************************************************************
 Info: Running Quartus Prime Analysis & Synthesis
     Info: Version 23.1std.0 Build 991 11/28/2023 SC Lite Edition
-    Info: Processing started: Sun Nov 22 19:38:53 2026
+    Info: Processing started: Mon Nov 23 15:13:31 2026
 Info: Command: quartus_map --read_settings_files=on --write_settings_files=off vga_demo -c vga_demo
 Warning (18236): Number of processors has not been specified which may cause overloading on shared machines.  Set the global assignment NUM_PARALLEL_PROCESSORS in your QSF to an appropriate value for best performance.
 Info (20030): Parallel compilation is enabled and will use 6 of the 6 processors detected
@@ -2956,15 +2977,16 @@ Info (12021): Found 1 design units, including 1 entities, in source file vga_ada
     Info (12023): Found entity 1: vga_address_translator File: C:/Users/mohsina9/mincraft/vga_adapter/vga_address_translator.v Line: 4
 Info (12021): Found 1 design units, including 1 entities, in source file vga_adapter/vga_controller.v
     Info (12023): Found entity 1: vga_controller File: C:/Users/mohsina9/mincraft/vga_adapter/vga_controller.v Line: 8
-Info (12021): Found 8 design units, including 8 entities, in source file vga_demo.v
+Info (12021): Found 9 design units, including 9 entities, in source file vga_demo.v
     Info (12023): Found entity 1: vga_demo File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 5
-    Info (12023): Found entity 2: sync File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 338
-    Info (12023): Found entity 3: regn File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 357
-    Info (12023): Found entity 4: upDn_count File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 371
-    Info (12023): Found entity 5: hex7seg File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 389
-    Info (12023): Found entity 6: block_map File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 427
-    Info (12023): Found entity 7: world File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 555
-    Info (12023): Found entity 8: steve File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 693
+    Info (12023): Found entity 2: sync File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 353
+    Info (12023): Found entity 3: regn File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 372
+    Info (12023): Found entity 4: upDn_count File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 386
+    Info (12023): Found entity 5: hex7seg File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 404
+    Info (12023): Found entity 6: block_map File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 442
+    Info (12023): Found entity 7: world File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 570
+    Info (12023): Found entity 8: steve File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 708
+    Info (12023): Found entity 9: block_selector File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 980
 Info (12021): Found 1 design units, including 1 entities, in source file object_mem.v
     Info (12023): Found entity 1: object_mem File: C:/Users/mohsina9/mincraft/object_mem.v Line: 1
 Info (12127): Elaborating entity "vga_demo" for the top level hierarchy
@@ -2973,15 +2995,22 @@ Warning (10230): Verilog HDL assignment warning at vga_demo.v(92): truncated val
 Info (12128): Elaborating entity "sync" for hierarchy "sync:S3" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 68
 Info (12128): Elaborating entity "regn" for hierarchy "regn:USC" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 193
 Info (12128): Elaborating entity "regn" for hierarchy "regn:UKU" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 195
-Info (12128): Elaborating entity "block_map" for hierarchy "block_map:MAP" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 277
-Warning (10030): Net "seed.data_a" at vga_demo.v(481) has no driver or initial value, using a default initial value '0' File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 481
-Warning (10030): Net "seed.waddr_a" at vga_demo.v(481) has no driver or initial value, using a default initial value '0' File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 481
-Warning (10030): Net "seed.we_a" at vga_demo.v(481) has no driver or initial value, using a default initial value '0' File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 481
+Info (12128): Elaborating entity "block_selector" for hierarchy "block_selector:SELECTOR" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 269
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(1021): truncated value with size 32 to match size of target (7) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 1021
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(1022): truncated value with size 32 to match size of target (7) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 1022
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(1023): truncated value with size 32 to match size of target (7) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 1023
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(1025): truncated value with size 32 to match size of target (7) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 1025
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(1028): truncated value with size 32 to match size of target (7) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 1028
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(1031): truncated value with size 32 to match size of target (7) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 1031
+Info (12128): Elaborating entity "block_map" for hierarchy "block_map:MAP" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 291
+Warning (10030): Net "seed.data_a" at vga_demo.v(496) has no driver or initial value, using a default initial value '0' File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 496
+Warning (10030): Net "seed.waddr_a" at vga_demo.v(496) has no driver or initial value, using a default initial value '0' File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 496
+Warning (10030): Net "seed.we_a" at vga_demo.v(496) has no driver or initial value, using a default initial value '0' File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 496
 Info (10008): Verilog HDL or VHDL information: EDA Netlist Writer cannot regroup multidimensional array "tiles" into its bus
-Info (12128): Elaborating entity "world" for hierarchy "world:W" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 285
-Info (12128): Elaborating entity "upDn_count" for hierarchy "world:W|upDn_count:UTC" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 582
-Info (12128): Elaborating entity "upDn_count" for hierarchy "world:W|upDn_count:UTR" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 584
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:GR" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 631
+Info (12128): Elaborating entity "world" for hierarchy "world:W" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 299
+Info (12128): Elaborating entity "upDn_count" for hierarchy "world:W|upDn_count:UTC" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 597
+Info (12128): Elaborating entity "upDn_count" for hierarchy "world:W|upDn_count:UTR" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 599
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:GR" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 646
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:GR|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:GR|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:GR|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3002,7 +3031,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:GR|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_1jg1.tdf
     Info (12023): Found entity 1: altsyncram_1jg1 File: C:/Users/mohsina9/mincraft/db/altsyncram_1jg1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_1jg1" for hierarchy "world:W|object_mem:GR|altsyncram:altsyncram_component|altsyncram_1jg1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:DI" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 635
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:DI" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 650
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:DI|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:DI|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:DI|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3023,7 +3052,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:DI|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_kfg1.tdf
     Info (12023): Found entity 1: altsyncram_kfg1 File: C:/Users/mohsina9/mincraft/db/altsyncram_kfg1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_kfg1" for hierarchy "world:W|object_mem:DI|altsyncram:altsyncram_component|altsyncram_kfg1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:ST" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 639
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:ST" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 654
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:ST|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:ST|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:ST|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3044,7 +3073,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:ST|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_ajg1.tdf
     Info (12023): Found entity 1: altsyncram_ajg1 File: C:/Users/mohsina9/mincraft/db/altsyncram_ajg1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_ajg1" for hierarchy "world:W|object_mem:ST|altsyncram:altsyncram_component|altsyncram_ajg1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:CB" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 643
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:CB" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 658
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:CB|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:CB|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:CB|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3065,7 +3094,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:CB|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_h6h1.tdf
     Info (12023): Found entity 1: altsyncram_h6h1 File: C:/Users/mohsina9/mincraft/db/altsyncram_h6h1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_h6h1" for hierarchy "world:W|object_mem:CB|altsyncram:altsyncram_component|altsyncram_h6h1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:LG" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 647
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:LG" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 662
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:LG|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:LG|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:LG|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3086,7 +3115,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:LG|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_3cg1.tdf
     Info (12023): Found entity 1: altsyncram_3cg1 File: C:/Users/mohsina9/mincraft/db/altsyncram_3cg1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_3cg1" for hierarchy "world:W|object_mem:LG|altsyncram:altsyncram_component|altsyncram_3cg1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:PL" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 651
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:PL" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 666
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:PL|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:PL|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:PL|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3107,7 +3136,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:PL|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_amg1.tdf
     Info (12023): Found entity 1: altsyncram_amg1 File: C:/Users/mohsina9/mincraft/db/altsyncram_amg1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_amg1" for hierarchy "world:W|object_mem:PL|altsyncram:altsyncram_component|altsyncram_amg1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:LV" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 655
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:LV" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 670
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:LV|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:LV|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:LV|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3128,7 +3157,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:LV|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_1mg1.tdf
     Info (12023): Found entity 1: altsyncram_1mg1 File: C:/Users/mohsina9/mincraft/db/altsyncram_1mg1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_1mg1" for hierarchy "world:W|object_mem:LV|altsyncram:altsyncram_component|altsyncram_1mg1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:DM" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 659
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:DM" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 674
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:DM|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:DM|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:DM|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3149,7 +3178,7 @@ Info (12133): Instantiated megafunction "world:W|object_mem:DM|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_g4h1.tdf
     Info (12023): Found entity 1: altsyncram_g4h1 File: C:/Users/mohsina9/mincraft/db/altsyncram_g4h1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_g4h1" for hierarchy "world:W|object_mem:DM|altsyncram:altsyncram_component|altsyncram_g4h1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:FE" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 663
+Info (12128): Elaborating entity "object_mem" for hierarchy "world:W|object_mem:FE" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 678
 Info (12128): Elaborating entity "altsyncram" for hierarchy "world:W|object_mem:FE|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "world:W|object_mem:FE|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "world:W|object_mem:FE|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3170,18 +3199,18 @@ Info (12133): Instantiated megafunction "world:W|object_mem:FE|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_crg1.tdf
     Info (12023): Found entity 1: altsyncram_crg1 File: C:/Users/mohsina9/mincraft/db/altsyncram_crg1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_crg1" for hierarchy "world:W|object_mem:FE|altsyncram:altsyncram_component|altsyncram_crg1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "regn" for hierarchy "world:W|regn:UX" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 669
-Info (12128): Elaborating entity "regn" for hierarchy "world:W|regn:UY" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 671
-Info (12128): Elaborating entity "steve" for hierarchy "steve:S" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 298
-Warning (10230): Verilog HDL assignment warning at vga_demo.v(758): truncated value with size 32 to match size of target (9) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 758
-Warning (10230): Verilog HDL assignment warning at vga_demo.v(810): truncated value with size 32 to match size of target (9) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 810
-Warning (10230): Verilog HDL assignment warning at vga_demo.v(811): truncated value with size 32 to match size of target (6) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 811
-Warning (10230): Verilog HDL assignment warning at vga_demo.v(812): truncated value with size 32 to match size of target (4) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 812
-Warning (10230): Verilog HDL assignment warning at vga_demo.v(816): truncated value with size 32 to match size of target (9) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 816
-Warning (10230): Verilog HDL assignment warning at vga_demo.v(837): truncated value with size 32 to match size of target (6) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 837
-Info (10264): Verilog HDL Case Statement information at vga_demo.v(913): all case item expressions in this case statement are onehot File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 913
-Info (12128): Elaborating entity "upDn_count" for hierarchy "steve:S|upDn_count:UYC" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 793
-Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M0" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 891
+Info (12128): Elaborating entity "regn" for hierarchy "world:W|regn:UX" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 684
+Info (12128): Elaborating entity "regn" for hierarchy "world:W|regn:UY" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 686
+Info (12128): Elaborating entity "steve" for hierarchy "steve:S" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 313
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(791): truncated value with size 32 to match size of target (9) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 791
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(843): truncated value with size 32 to match size of target (9) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 843
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(844): truncated value with size 32 to match size of target (6) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 844
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(845): truncated value with size 32 to match size of target (4) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 845
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(849): truncated value with size 32 to match size of target (9) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 849
+Warning (10230): Verilog HDL assignment warning at vga_demo.v(870): truncated value with size 32 to match size of target (6) File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 870
+Info (10264): Verilog HDL Case Statement information at vga_demo.v(946): all case item expressions in this case statement are onehot File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 946
+Info (12128): Elaborating entity "upDn_count" for hierarchy "steve:S|upDn_count:UYC" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 826
+Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M0" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 924
 Info (12128): Elaborating entity "altsyncram" for hierarchy "steve:S|object_mem:M0|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "steve:S|object_mem:M0|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "steve:S|object_mem:M0|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3202,7 +3231,7 @@ Info (12133): Instantiated megafunction "steve:S|object_mem:M0|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_o7h1.tdf
     Info (12023): Found entity 1: altsyncram_o7h1 File: C:/Users/mohsina9/mincraft/db/altsyncram_o7h1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_o7h1" for hierarchy "steve:S|object_mem:M0|altsyncram:altsyncram_component|altsyncram_o7h1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M1" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 895
+Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M1" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 928
 Info (12128): Elaborating entity "altsyncram" for hierarchy "steve:S|object_mem:M1|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "steve:S|object_mem:M1|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "steve:S|object_mem:M1|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3223,7 +3252,7 @@ Info (12133): Instantiated megafunction "steve:S|object_mem:M1|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_k3h1.tdf
     Info (12023): Found entity 1: altsyncram_k3h1 File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_k3h1" for hierarchy "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M2" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 899
+Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M2" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 932
 Info (12128): Elaborating entity "altsyncram" for hierarchy "steve:S|object_mem:M2|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "steve:S|object_mem:M2|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "steve:S|object_mem:M2|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3244,7 +3273,7 @@ Info (12133): Instantiated megafunction "steve:S|object_mem:M2|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_e8h1.tdf
     Info (12023): Found entity 1: altsyncram_e8h1 File: C:/Users/mohsina9/mincraft/db/altsyncram_e8h1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_e8h1" for hierarchy "steve:S|object_mem:M2|altsyncram:altsyncram_component|altsyncram_e8h1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M3" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 903
+Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M3" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 936
 Info (12128): Elaborating entity "altsyncram" for hierarchy "steve:S|object_mem:M3|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "steve:S|object_mem:M3|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "steve:S|object_mem:M3|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3265,7 +3294,7 @@ Info (12133): Instantiated megafunction "steve:S|object_mem:M3|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_f8h1.tdf
     Info (12023): Found entity 1: altsyncram_f8h1 File: C:/Users/mohsina9/mincraft/db/altsyncram_f8h1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_f8h1" for hierarchy "steve:S|object_mem:M3|altsyncram:altsyncram_component|altsyncram_f8h1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M4" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 907
+Info (12128): Elaborating entity "object_mem" for hierarchy "steve:S|object_mem:M4" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 940
 Info (12128): Elaborating entity "altsyncram" for hierarchy "steve:S|object_mem:M4|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12130): Elaborated megafunction instantiation "steve:S|object_mem:M4|altsyncram:altsyncram_component" File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
 Info (12133): Instantiated megafunction "steve:S|object_mem:M4|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/mohsina9/mincraft/object_mem.v Line: 35
@@ -3286,8 +3315,8 @@ Info (12133): Instantiated megafunction "steve:S|object_mem:M4|altsyncram:altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_2eh1.tdf
     Info (12023): Found entity 1: altsyncram_2eh1 File: C:/Users/mohsina9/mincraft/db/altsyncram_2eh1.tdf Line: 28
 Info (12128): Elaborating entity "altsyncram_2eh1" for hierarchy "steve:S|object_mem:M4|altsyncram:altsyncram_component|altsyncram_2eh1:auto_generated" File: c:/intelfpga/quartus_prime_lite_23.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
-Info (12128): Elaborating entity "hex7seg" for hierarchy "hex7seg:H0" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 307
-Info (12128): Elaborating entity "vga_adapter" for hierarchy "vga_adapter:VGA" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 329
+Info (12128): Elaborating entity "hex7seg" for hierarchy "hex7seg:H0" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 322
+Info (12128): Elaborating entity "vga_adapter" for hierarchy "vga_adapter:VGA" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 344
 Info (12128): Elaborating entity "vga_address_translator" for hierarchy "vga_adapter:VGA|vga_address_translator:user_input_translator" File: C:/Users/mohsina9/mincraft/vga_adapter/vga_adapter.v Line: 128
 Info (12128): Elaborating entity "altsyncram" for hierarchy "vga_adapter:VGA|altsyncram:VideoMemory" File: C:/Users/mohsina9/mincraft/vga_adapter/vga_adapter.v Line: 151
 Info (12130): Elaborated megafunction instantiation "vga_adapter:VGA|altsyncram:VideoMemory" File: C:/Users/mohsina9/mincraft/vga_adapter/vga_adapter.v Line: 151
@@ -3341,23 +3370,19 @@ Info (12128): Elaborating entity "vga_controller" for hierarchy "vga_adapter:VGA
 Critical Warning (127005): Memory depth (512) in the design file differs from memory depth (300) in the Memory Initialization File "C:/Users/mohsina9/mincraft/db/vga_demo.ram0_block_map_51f4d0.hdl.mif" -- setting initial value for remaining addresses to 0
 Warning (14284): Synthesized away the following node(s):
     Warning (14285): Synthesized away the following RAM node(s):
-        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[0]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 35
+        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[2]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 77
+        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[3]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 98
+        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[4]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 119
+        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[5]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 140
+        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[6]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 161
         Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[7]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 182
         Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[8]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 203
-        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[6]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 161
-        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[5]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 140
-        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[4]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 119
-        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[3]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 98
-        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[2]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 77
+        Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[0]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 35
         Warning (14320): Synthesized away node "steve:S|object_mem:M1|altsyncram:altsyncram_component|altsyncram_k3h1:auto_generated|q_a[1]" File: C:/Users/mohsina9/mincraft/db/altsyncram_k3h1.tdf Line: 56
 Warning (13039): The following bidirectional pins have no drivers
     Warning (13040): bidirectional pin "PS2_CLK" has no driver File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 26
     Warning (13040): bidirectional pin "PS2_DAT" has no driver File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 26
 Warning (13024): Output pins are stuck at VCC or GND
-    Warning (13410): Pin "LEDR[6]" is stuck at GND File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 25
-    Warning (13410): Pin "LEDR[7]" is stuck at GND File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 25
-    Warning (13410): Pin "LEDR[8]" is stuck at GND File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 25
-    Warning (13410): Pin "LEDR[9]" is stuck at GND File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 25
     Warning (13410): Pin "VGA_R[0]" is stuck at GND File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 28
     Warning (13410): Pin "VGA_R[1]" is stuck at GND File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 28
     Warning (13410): Pin "VGA_G[0]" is stuck at GND File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 29
@@ -3944,31 +3969,26 @@ Info (16010): Generating hard_block partition "hard_block:auto_generated_inst"
     Info (16011): Adding 5 node(s), including 0 DDIO, 1 PLL, 0 transceiver and 0 LCELL
 Warning: RST port on the PLL is not properly connected on instance vga_adapter:VGA|vga_pll:mypll|altpll:altpll_component|altpll_80u:auto_generated|generic_pll1. The reset port on the PLL should be connected. If the PLL loses lock for any reason, you might need to manually reset the PLL in order to re-establish lock to the reference clock. File: C:/Users/mohsina9/mincraft/db/altpll_80u.tdf Line: 34
     Info: Must be connected
-Warning (21074): Design contains 13 input pin(s) that do not drive logic
-    Warning (15610): No output dependent on input pin "SW[0]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
-    Warning (15610): No output dependent on input pin "SW[1]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
-    Warning (15610): No output dependent on input pin "SW[2]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
-    Warning (15610): No output dependent on input pin "SW[3]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
+Warning (21074): Design contains 8 input pin(s) that do not drive logic
     Warning (15610): No output dependent on input pin "SW[4]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
     Warning (15610): No output dependent on input pin "SW[5]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
     Warning (15610): No output dependent on input pin "SW[6]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
     Warning (15610): No output dependent on input pin "SW[7]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
     Warning (15610): No output dependent on input pin "SW[8]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
-    Warning (15610): No output dependent on input pin "SW[9]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 23
     Warning (15610): No output dependent on input pin "KEY[1]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 24
     Warning (15610): No output dependent on input pin "KEY[2]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 24
     Warning (15610): No output dependent on input pin "KEY[3]" File: C:/Users/mohsina9/mincraft/vga_demo.v Line: 24
-Info (21057): Implemented 4694 device resources after synthesis - the final resource count might be different
+Info (21057): Implemented 5154 device resources after synthesis - the final resource count might be different
     Info (21058): Implemented 15 input pins
     Info (21059): Implemented 81 output pins
     Info (21060): Implemented 2 bidirectional pins
-    Info (21061): Implemented 4136 logic cells
+    Info (21061): Implemented 4596 logic cells
     Info (21064): Implemented 459 RAM segments
     Info (21065): Implemented 1 PLLs
-Info: Quartus Prime Analysis & Synthesis was successful. 0 errors, 626 warnings
-    Info: Peak virtual memory: 4960 megabytes
-    Info: Processing ended: Sun Nov 22 19:39:07 2026
-    Info: Elapsed time: 00:00:14
+Info: Quartus Prime Analysis & Synthesis was successful. 0 errors, 623 warnings
+    Info: Peak virtual memory: 4961 megabytes
+    Info: Processing ended: Mon Nov 23 15:13:46 2026
+    Info: Elapsed time: 00:00:15
     Info: Total CPU time (on all processors): 00:00:23
 
 
