@@ -1429,15 +1429,15 @@ module block_interaction (
 	always @ (*) begin
 		case (target_block)
 			4'd0: hardness = 8'd0; // air
-			4'd1: hardness = 8'd5; // grass
-			4'd2: hardness = 8'd5; // dirt
-			4'd3: hardness = 8'd20; // stone
-			4'd4: hardness = 8'd25; // cobble
-			4'd5: hardness = 8'd15; // log
-			4'd6: hardness = 8'd10; // planks
-			4'd7: hardness = 8'd2; // leaves
-			4'd8: hardness = 8'd30; // iron ore
-			4'd9: hardness = 8'd40; // diamond ore
+			4'd1: hardness = 8'd9; // grass
+			4'd2: hardness = 8'd9; // dirt
+			4'd3: hardness = 8'd75; // stone
+			4'd4: hardness = 8'd75; // cobble
+			4'd5: hardness = 8'd30; // log
+			4'd6: hardness = 8'd30; // planks
+			4'd7: hardness = 8'd3; // leaves
+			4'd8: hardness = 8'd75; // iron ore
+			4'd9: hardness = 8'd75; // diamond ore
 			default: hardness = 8'd20;
 		endcase
 	end
