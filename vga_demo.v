@@ -1448,7 +1448,7 @@ module block_interaction (
 	reg [8:0] progress;
 	
 	reg [4:0] mining_col;
-	reg [4:0] mining_row;
+	reg [3:0] mining_row;
 	
 	wire same_target = (target_col == mining_col) && (target_row == mining_row);
 	
@@ -1480,16 +1480,31 @@ module block_interaction (
 			mining_col <= 5'd0;
 			mining_row <= 4'd0;
 		end
+		
+		// minig stopped, became invalid or changed targets
 		else if (!can_mine || !same_target) begin
 			tick_counter <= 19'd0;
+			progress <= 9'd0;
 			
-			if (break_complete) progress <= 9'd0;
-			else progress <= next_progress[8:0];
-			
+			// remember the new target
+			mining_col <= target_col;
+			mining_row <= target_row;
 		end
-		else begin
+		
+		// enough clock cycles have passed for one mining tick
+		else if (mining_tick) begin
+			tick_counter <= 19'd0;
+			
+			if (break_complete)
+				progress <= 9'd0;
+			else 
+				progress <= next_progress[8:0];
+		end
+		
+		else begin 
 			tick_counter <= tick_counter + 1'b1;
 		end
+		
 	end
 	
 endmodule
