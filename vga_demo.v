@@ -1174,6 +1174,36 @@ module block_selector (
 		dx = 0;
 		dy = 0;
 		
+	if (spans_two_cols) begin
+	
+		case (index)
+		
+			// top row
+			4'd0: begin dx = -1; dy = -1; end
+			4'd1: begin dx =  0; dy = -1; end
+			4'd2: begin dx =  1; dy = -1; end
+			4'd3: begin dx =  2; dy = -1; end
+			
+			// upper sides
+			4'd4: begin dx = -1; dy =  0; end
+			4'd5: begin dx =  2; dy =  0; end
+			
+			// lower sides
+			4'd6: begin dx = -1; dy =  1; end
+			4'd7: begin dx =  2; dy =  1; end
+			
+			// bottom row
+			4'd8: begin dx = -1; dy =  2; end
+			4'd9: begin dx =  0; dy =  2; end
+			4'd10: begin dx =  1; dy =  2; end
+			4'd11: begin dx =  2; dy =  2; end
+
+			default: begin dx = 0; dy = 0; end
+			
+		endcase
+	end
+	else begin
+		
 		case (index)
 		
 			/*
@@ -1206,6 +1236,7 @@ module block_selector (
 			
 			default: begin dx = 0; dy = 0; end
 		endcase
+	end
 	end
 	
 	wire signed [6:0] col = player_col + dx;
