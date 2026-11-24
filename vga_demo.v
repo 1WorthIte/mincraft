@@ -214,7 +214,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	 regn UKU (command_release, Resetn, Esc, CLOCK_50, key_up);
 		defparam UKU.n = 1;
 		
-    assign LEDR = SW[9] ? {target_valid, selected_col, selected_row} : {2'b0, scancode}; // temporary SW testing
+    // assign LEDR = SW[9] ? {target_valid, selected_col, selected_row} : {2'b0, scancode}; // temporary SW testing
+	 assign LEDR = {refresh_state, UI_busy, S_done, world_done, tile_redraw_done, refresh_busy, refresh_pending};
 	 
     // FSM state table
     always @ (*)
@@ -414,7 +415,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 				end
 				R_TILE: refresh_state <= restore_valid ? R_WAIT_TILE : R_NEXT_TILE;
 				R_WAIT_TILE: if (tile_redraw_done) refresh_state <= R_NEXT_TILE;
-				R_NEXT_TILE: if (restore_c == 2'd2) begin
+				R_NEXT_TILE: if (restore_c == ((drawn_x[4:0] != 5'd0) ? 2'd3 : 2'd2)) begin
 					restore_c <= 2'd0;
 					if (restore_r == 2'd3) refresh_state <= R_UI;
 					else begin
@@ -1162,6 +1163,7 @@ module block_selector (
 	// convert steve's pixel positions into tile coords
 	
 	wire signed [6:0] player_col = {2'b00, player_x[9:5]};
+	wire spans_two_cols = (player_x[4:0] != 5'd0);
 	wire signed [6:0] player_row = {3'b000, player_y[8:5]};
 	
 	// offset of the selected block relative to steve
@@ -1211,7 +1213,7 @@ module block_selector (
 	
 	// valid only inside playable area
 	
-	assign target_valid = (index < 4'd10) && (col >= 0) && (col < 20) && (row >= 5) && (row < 15);
+	assign target_valid = (index < (spans_two_cols ? 4'd12 : 4'd10)) && (col >= 0) && (col < 20) && (row >= 5) && (row < 15);
 	
 	assign target_col = target_valid ? col[4:0] : 5'd0;
 	assign target_row = target_valid ? row[3:0] : 4'd0;
@@ -1309,8 +1311,8 @@ module selection_ui (
             if (pixel_index == 10'd1023) begin
                 pixel_index <= 10'd0;
 
-                if (draw_index == 4'd9)
-                    busy <= 1'b0;
+                if (draw_index == ((player_x[4:0] != 5'd0) ? 4'd11 : 4'd9))
+							busy <= 1'b0;
                 else
                     draw_index <= draw_index + 1'b1;
             end
