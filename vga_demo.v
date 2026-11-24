@@ -271,10 +271,37 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		wire [8:0] steve_y;
 		wire target_valid;
 		
-		assign map_write_enable = 1'b0;
-		assign map_write_col = 5'd0;
-		assign map_write_row = 4'd0;
-		assign map_write_block = 4'd0;
+		wire edit_done;
+		reg world_dirty;
+		
+		wire [3:0] held_tool_strength = 4'd1; // hand
+		wire [3:0] held_place_block = 4'd3; // stone
+		
+		block_interaction INTERACTION (
+		
+			.clk(CLOCK_50),
+			.resetn(Resetn),
+			.key_break(KEY[3]),
+			.key_place(KEY[2]),
+			
+			.enable(map_ready),
+			.target_valid(target_valid && selected_valid),
+			.target_col(selected_col),
+			.target_row(selected_row),
+			.target_block(selected_block),
+			.has_neighbor(selected_has_neighbor),
+			
+			.tool_strength(held_tool_strength),
+			.place_block(held_place_block),
+			
+			.write_enable(map_write_enable),
+			.write_col(map_write_col),
+			.write_row(map_write_row),
+			.write_block(map_write_block),
+			.edit_done(edit_done)
+		
+		);
+		
 	
 		block_selector SELECTOR (
 										
@@ -370,7 +397,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	reg drawn_valid, sprite_dirty;
 
 	wire refresh_pending = world_done && S_done && (y_Q == A) &&
-	                       (!drawn_valid || sprite_dirty ||
+	                       (!drawn_valid || sprite_dirty || world_dirty ||
 	                        steve_x != drawn_x || steve_y != drawn_y ||
 	                        SW[3:0] != drawn_selection);
 	assign refresh_busy = (refresh_state != R_IDLE) || refresh_pending;
@@ -400,10 +427,13 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			frame_selection <= 4'd0;
 			drawn_valid <= 1'b0;
 			sprite_dirty <= 1'b0;
+			world_dirty <= 1'b0;
 		end
 		else begin
 			if (refresh_state == R_IDLE && !S_done)
 				sprite_dirty <= 1'b1;
+			if (edit_done)
+				world_dirty <= 1'b1;
 			case (refresh_state)
 				R_IDLE: if (refresh_pending) begin
 					frame_x <= steve_x;
@@ -437,6 +467,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 					drawn_selection <= frame_selection;
 					drawn_valid <= 1'b1;
 					sprite_dirty <= 1'b0;
+					world_dirty <= 1'b0;
 					refresh_state <= R_IDLE;
 				end
 				default: refresh_state <= R_IDLE;
@@ -1353,4 +1384,112 @@ module selection_ui (
         end
     end
 
+endmodule
+
+module block_interaction (
+	input wire clk, resetn,
+	input wire key_break, key_place,
+	input wire enable, target_valid,
+	input wire [4:0] target_col,
+	input wire [3:0] target_row,
+	input wire [3:0] target_block,
+	input wire has_neighbor,
+	input wire [3:0] tool_strength,
+	input wire [3:0] place_block,
+	
+	output wire write_enable,
+	output wire [4:0] write_col,
+	output wire [3:0] write_row,
+	output wire [3:0] write_block,
+	output wire edit_done
+);
+
+	reg [1:0] break_sync, place_sync;
+	reg place_previous;
+	
+	always @(posedge clk) begin
+		if (!resetn) begin
+			break_sync <= 2'b11;
+			place_sync <= 2'b11;
+			place_previous <= 1'b1;
+		end
+		else begin
+			break_sync <= {break_sync[0], key_break};
+			place_sync <= {place_sync[0], key_place};
+			place_previous <= place_sync[1];
+		end
+	end
+	
+	wire breaking = !break_sync[1];
+	wire place_pressed = place_previous && !place_sync[1];
+	
+	// hardness units: tenths of a second using the hand
+	reg [7:0] hardness;
+	
+	always @ (*) begin
+		case (target_block)
+			4'd0: hardness = 8'd0; // air
+			4'd1: hardness = 8'd5; // grass
+			4'd2: hardness = 8'd5; // dirt
+			4'd3: hardness = 8'd20; // stone
+			4'd4: hardness = 8'd25; // cobble
+			4'd5: hardness = 8'd15; // log
+			4'd6: hardness = 8'd10; // planks
+			4'd7: hardness = 8'd2; // leaves
+			4'd8: hardness = 8'd30; // iron ore
+			4'd9: hardness = 8'd40; // diamond ore
+			default: hardness = 8'd20;
+		endcase
+	end
+			
+	localparam [18:0] TICK_LIMIT = 19'd499999;
+	
+	reg [18:0] tick_counter;
+	reg [8:0] progress;
+	
+	reg [4:0] mining_col;
+	reg [4:0] mining_row;
+	
+	wire same_target = (target_col == mining_col) && (target_row == mining_row);
+	
+	wire can_mine = enable && target_valid && breaking && (target_block != 4'd0) && (tool_strength != 4'd0);
+	
+	wire mining_tick = can_mine && same_target && (tick_counter == TICK_LIMIT);
+	
+	wire [8:0] required_progress = {1'b0, hardness} * 9'd10;
+	
+	wire [9:0] next_progress = {1'b0, progress} + {6'd0, tool_strength};
+	
+	wire break_complete = mining_tick && (next_progress >= {1'b0, required_progress});
+	
+	wire place_complete = enable && target_valid && place_pressed && (target_block == 4'd0) && has_neighbor && (place_block != 4'd0);
+	
+	assign write_enable = break_complete || place_complete;
+	
+	assign write_col = target_col;
+	assign write_row = target_row;
+	
+	assign write_block = break_complete ? 4'd0 : place_block;
+	
+	assign edit_done = write_enable;
+	
+	always @(posedge clk) begin
+		if (!resetn) begin
+			tick_counter <= 19'd0;
+			progress <= 9'd0;
+			mining_col <= 5'd0;
+			mining_row <= 4'd0;
+		end
+		else if (!can_mine || !same_target) begin
+			tick_counter <= 19'd0;
+			
+			if (break_complete) progress <= 9'd0;
+			else progress <= next_progress[8:0];
+			
+		end
+		else begin
+			tick_counter <= tick_counter + 1'b1;
+		end
+	end
+	
 endmodule
