@@ -50,6 +50,29 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	wire UI_start;
 	wire refresh_busy;
 	wire steve_force_redraw;
+
+    // KEY1 toggles non-selected block outlines (active-low button).
+    reg show_outlines;
+    reg [1:0] key1_sync;
+    reg key1_prev;
+    reg [17:0] key1_debounce;
+    always @(posedge CLOCK_50) begin
+        if (!Resetn) begin
+            show_outlines <= 1'b1;
+            key1_sync <= 2'b11;
+            key1_prev <= 1'b1;
+            key1_debounce <= 18'd0;
+        end else begin
+            key1_sync <= {key1_sync[0], KEY[1]};
+            key1_prev <= key1_sync[1];
+            if (key1_debounce != 18'd0)
+                key1_debounce <= key1_debounce - 1'b1;
+            if (key1_prev && !key1_sync[1] && key1_debounce == 18'd0) begin
+                show_outlines <= ~show_outlines;
+                key1_debounce <= 18'd249999; // 5 ms bounce guard
+            end
+        end
+    end
 	
 	wire world_done;
 	
@@ -272,6 +295,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		wire target_valid;
 		
 		wire edit_done;
+        wire [9:0] mining_progress, mining_required;
+        wire mining_active;
 		reg world_dirty;
 		
 		wire [3:0] held_tool_strength = 4'd1; // hand
@@ -298,7 +323,10 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			.write_col(map_write_col),
 			.write_row(map_write_row),
 			.write_block(map_write_block),
-			.edit_done(edit_done)
+			.edit_done(edit_done),
+            .mining_progress(mining_progress),
+            .mining_required(mining_required),
+            .mining_active(mining_active)
 		
 		);
 		
@@ -374,6 +402,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		.player_x(frame_x),
 		.player_y(frame_y),
 		.selected_index(frame_selection),
+        .show_outlines(frame_outlines),
 		
 		.busy(UI_busy),
 		
@@ -395,11 +424,13 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	reg [8:0] drawn_y, frame_y;
 	reg [3:0] drawn_selection, frame_selection;
 	reg drawn_valid, sprite_dirty;
+    reg drawn_outlines, frame_outlines;
 
 	wire refresh_pending = world_done && S_done && (y_Q == A) &&
 	                       (!drawn_valid || sprite_dirty || world_dirty ||
 	                        steve_x != drawn_x || steve_y != drawn_y ||
-	                        SW[3:0] != drawn_selection);
+	                        SW[3:0] != drawn_selection ||
+                            show_outlines != drawn_outlines);
 	assign refresh_busy = (refresh_state != R_IDLE) || refresh_pending;
 
 	wire signed [6:0] restore_col = $signed({2'b00, drawn_x[9:5]}) +
@@ -425,6 +456,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			frame_x <= 10'd0;
 			frame_y <= 9'd0;
 			frame_selection <= 4'd0;
+            drawn_outlines <= 1'b1;
+            frame_outlines <= 1'b1;
 			drawn_valid <= 1'b0;
 			sprite_dirty <= 1'b0;
 			world_dirty <= 1'b0;
@@ -439,6 +472,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 					frame_x <= steve_x;
 					frame_y <= steve_y;
 					frame_selection <= SW[3:0];
+                    frame_outlines <= show_outlines;
 					restore_c <= 2'd0;
 					restore_r <= 2'd0;
 					refresh_state <= drawn_valid ? R_TILE : R_UI;
@@ -465,6 +499,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 					drawn_x <= frame_x;
 					drawn_y <= frame_y;
 					drawn_selection <= frame_selection;
+                    drawn_outlines <= frame_outlines;
 					drawn_valid <= 1'b1;
 					sprite_dirty <= 1'b0;
 					world_dirty <= 1'b0;
@@ -476,10 +511,25 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	end
 	
     // choose x, y, color, and write for one of the two objects
-    assign MUX_x = UI_busy ? UI_x : world_done ? S_x : W_x;
-    assign MUX_y = UI_busy ? UI_y : world_done ? S_y : W_y;
-    assign MUX_color = UI_busy ? UI_color : world_done ? S_color : W_color;
-    assign MUX_write = UI_busy ? (UI_write && UI_y >= 9'd160) : world_done ? (S_write && S_y >= 9'd160) : (W_write && W_y >= 9'd160); // prevents both world renderer and steve from overwriting the top 160 pixrls
+    // The HUD bar is in the protected top 160 pixels, below the first row.
+    // It paints only while all other VGA writers are idle.
+    wire [9:0] BAR_x;
+    wire [8:0] BAR_y, BAR_color;
+    wire BAR_write;
+    wire bar_grant = world_done && S_done && !refresh_busy && !UI_busy;
+    mining_bar BAR (
+        .clk(CLOCK_50), .resetn(Resetn), .grant(bar_grant),
+        .active(mining_active), .progress(mining_progress),
+        .required(mining_required),
+        .x(BAR_x), .y(BAR_y), .color(BAR_color), .write(BAR_write)
+    );
+    assign MUX_x = BAR_write ? BAR_x : UI_busy ? UI_x : world_done ? S_x : W_x;
+    assign MUX_y = BAR_write ? BAR_y : UI_busy ? UI_y : world_done ? S_y : W_y;
+    assign MUX_color = BAR_write ? BAR_color : UI_busy ? UI_color : world_done ? S_color : W_color;
+    assign MUX_write = BAR_write ? 1'b1 :
+                       UI_busy ? (UI_write && UI_y >= 9'd160) :
+                       world_done ? (S_write && S_y >= 9'd160) :
+                                    (W_write && W_y >= 9'd160); // prevents both world renderer and steve from overwriting the top 160 pixrls
 	 
 	 // display PS2 data
     hex7seg H0 (Serial[4:1], HEX0);
@@ -1291,6 +1341,7 @@ module selection_ui (
     input wire [9:0] player_x,
     input wire [8:0] player_y,
     input wire [3:0] selected_index,
+    input wire show_outlines,
 
     output reg busy,
 
@@ -1352,7 +1403,7 @@ module selection_ui (
 
     // Only write pixels belonging to the outlines
     assign VGA_write = busy && draw_valid &&
-                       (is_selected ? thick_border : thin_border);
+                       (is_selected ? thick_border : (show_outlines && thin_border));
 
     // Drawing controller
     always @(posedge Clock) begin
@@ -1401,7 +1452,10 @@ module block_interaction (
 	output wire [4:0] write_col,
 	output wire [3:0] write_row,
 	output wire [3:0] write_block,
-	output wire edit_done
+	output wire edit_done,
+    output wire [9:0] mining_progress,
+    output wire [9:0] mining_required,
+    output wire mining_active
 );
 
 	reg [1:0] break_sync, place_sync;
@@ -1445,7 +1499,7 @@ module block_interaction (
 	localparam [18:0] TICK_LIMIT = 19'd499999;
 	
 	reg [18:0] tick_counter;
-	reg [8:0] progress;
+	reg [9:0] progress;
 	
 	reg [4:0] mining_col;
 	reg [3:0] mining_row;
@@ -1456,9 +1510,9 @@ module block_interaction (
 	
 	wire mining_tick = can_mine && same_target && (tick_counter == TICK_LIMIT);
 	
-	wire [8:0] required_progress = {1'b0, hardness} * 9'd10;
+	wire [9:0] required_progress = {2'b00, hardness} * 10'd10;
 	
-	wire [9:0] next_progress = {1'b0, progress} + {6'd0, tool_strength};
+	wire [10:0] next_progress = {1'b0, progress} + {7'd0, tool_strength};
 	
 	wire break_complete = mining_tick && (next_progress >= {1'b0, required_progress});
 	
@@ -1472,11 +1526,14 @@ module block_interaction (
 	assign write_block = break_complete ? 4'd0 : place_block;
 	
 	assign edit_done = write_enable;
+    assign mining_progress = progress;
+    assign mining_required = required_progress;
+    assign mining_active = can_mine && same_target;
 	
 	always @(posedge clk) begin
 		if (!resetn) begin
 			tick_counter <= 19'd0;
-			progress <= 9'd0;
+			progress <= 10'd0;
 			mining_col <= 5'd0;
 			mining_row <= 4'd0;
 		end
@@ -1484,7 +1541,7 @@ module block_interaction (
 		// minig stopped, became invalid or changed targets
 		else if (!can_mine || !same_target) begin
 			tick_counter <= 19'd0;
-			progress <= 9'd0;
+			progress <= 10'd0;
 			
 			// remember the new target
 			mining_col <= target_col;
@@ -1496,9 +1553,9 @@ module block_interaction (
 			tick_counter <= 19'd0;
 			
 			if (break_complete)
-				progress <= 9'd0;
+				progress <= 10'd0;
 			else 
-				progress <= next_progress[8:0];
+				progress <= next_progress[9:0];
 		end
 		
 		else begin 
@@ -1507,4 +1564,91 @@ module block_interaction (
 		
 	end
 	
+endmodule
+
+// HUD mining progress: 128x10, right aligned, directly below first HUD row.
+// X=496..623, Y=44..53. Modify BAR_X/BAR_Y to move it.
+// One pixel per granted cycle, with an update about every 50 ms.
+module mining_bar (
+    input wire clk, resetn, grant, active,
+    input wire [9:0] progress, required,
+    output wire [9:0] x,
+    output wire [8:0] y, color,
+    output wire write
+);
+    localparam [9:0] BAR_X = 10'd496;
+    localparam [8:0] BAR_Y = 9'd44;
+    localparam [8:0] HUD_BACKGROUND = 9'h1BF; // sky color; adjust for HUD
+    reg [6:0] px;
+    reg [3:0] py;
+    reg drawing;
+    reg [9:0] displayed_progress, displayed_required;
+    reg displayed_active;
+    reg [9:0] pending_progress, pending_required;
+    reg pending_active;
+    reg [21:0] update_timer;
+
+    wire active_now = active && (required != 10'd0);
+    wire [9:0] progress_now = active_now ? progress : 10'd0;
+    wire changed = (progress_now != displayed_progress) ||
+                   (active_now != displayed_active) ||
+                   (required != displayed_required);
+
+    always @(posedge clk) begin
+        if (!resetn) begin
+            px <= 7'd0;
+            py <= 4'd0;
+            drawing <= 1'b0;
+            displayed_progress <= 10'd0;
+            displayed_required <= 10'd0;
+            displayed_active <= 1'b0;
+            pending_progress <= 10'd0;
+            pending_required <= 10'd0;
+            pending_active <= 1'b0;
+            update_timer <= 22'd0;
+        end else begin
+            if (update_timer == 22'd2499999)
+                update_timer <= 22'd0;
+            else
+                update_timer <= update_timer + 1'b1;
+
+            if (!drawing) begin
+                if (grant && changed && update_timer == 22'd0) begin
+                    drawing <= 1'b1;
+                    px <= 7'd0;
+                    py <= 4'd0;
+                    pending_progress <= progress_now;
+                    pending_required <= required;
+                    pending_active <= active_now;
+                end
+            end else if (grant) begin
+                if (px == 7'd127) begin
+                    px <= 7'd0;
+                    if (py == 4'd9) begin
+                        py <= 4'd0;
+                        drawing <= 1'b0;
+                        displayed_progress <= pending_progress;
+                        displayed_required <= pending_required;
+                        displayed_active <= pending_active;
+                    end else
+                        py <= py + 1'b1;
+                end else
+                    px <= px + 1'b1;
+            end
+        end
+    end
+
+    assign x = BAR_X + {3'd0, px};
+    assign y = BAR_Y + {5'd0, py};
+
+    // Avoid hardware division: compare cross-products at 20-bit precision.
+    // Fill only interior pixels, keeping the white border intact.
+    wire filled = pending_active && pending_required != 10'd0 &&
+                  ({13'd0, px} * {10'd0, pending_required} <
+                   {10'd0, pending_progress} * 20'd128);
+    wire border = px == 7'd0 || px == 7'd127 || py == 4'd0 || py == 4'd9;
+    assign color = !pending_active ? HUD_BACKGROUND :
+                   border ? 9'b111_111_111 :
+                   filled ? 9'b001_111_001 : 9'b010_010_010;
+    assign write = drawing && grant;
 endmodule
