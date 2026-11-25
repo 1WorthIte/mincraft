@@ -185,42 +185,45 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 				release_pending <= 1'b1;
 			end
 			
-			if (extended_pending) begin
-				
-				// extended keys: arrow keys
-				
-				case (received_byte)
-					
-					8'h75: up_arrow_down <= !release_pending;
-					8'h72: down_arrow_down <= !release_pending;
-					8'h6B: left_arrow_down <= !release_pending;
-					8'h74: right_arrow_down <= !release_pending;
-					
-					default: ;
-					
-				endcase
-			end
-			
 			else begin
-				// orginary keys: movement, mining and placing
+			
+				if (extended_pending) begin
 				
-				case (received_byte)
+					// extended keys: arrow keys
 				
-					8'h1C: left_down <= !release_pending; // A
-					8'h23: right_down <= !release_pending; // D
-					8'h2B: hit_down <= !release_pending; // F
-					8'h29: jump_down <= !release_pending; // Space
+					case (received_byte)
 					
-					8'h32: break_down <= !release_pending; // B
-					8'h4D: place_down <= !release_pending; // P
+						8'h75: up_arrow_down <= !release_pending;
+						8'h72: down_arrow_down <= !release_pending;
+						8'h6B: left_arrow_down <= !release_pending;
+						8'h74: right_arrow_down <= !release_pending;
 					
-					default: ;
-				endcase
-			end
+						default: ;
+					
+					endcase
+				end
+			
+				else begin
+					// orginary keys: movement, mining and placing
+				
+					case (received_byte)
+				
+						8'h1C: left_down <= !release_pending; // A
+						8'h23: right_down <= !release_pending; // D
+						8'h2B: hit_down <= !release_pending; // F
+						8'h29: jump_down <= !release_pending; // Space
+					
+						8'h32: break_down <= !release_pending; // B
+						8'h4D: place_down <= !release_pending; // P
+					
+						default: ;
+					endcase
+				end
 			
 			release_pending <= 1'b0;
 			extended_pending <= 1'b0;
 			
+		end
 		end
 	 end
 	 
