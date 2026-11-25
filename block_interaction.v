@@ -10,6 +10,7 @@ module block_interaction (
 	input wire has_neighbor,
 	input wire [3:0] tool_strength,
 	input wire [3:0] place_block,
+	input wire can_collect,
 	
 	output wire write_enable,
 	output wire [4:0] write_col,
@@ -24,7 +25,7 @@ module block_interaction (
 	reg [1:0] break_sync, place_sync;
 	reg place_previous;
 	
-	always @(posedge clk) begin
+	always @(posedge clk) begin // shift register to sync up block breaking and placing keys
 		if (!resetn) begin
 			break_sync <= 2'b11;
 			place_sync <= 2'b11;
@@ -77,7 +78,7 @@ module block_interaction (
 	
 	wire [10:0] next_progress = {1'b0, progress} + {7'd0, tool_strength};
 	
-	wire break_complete = mining_tick && (next_progress >= {1'b0, required_progress});
+	wire break_complete = mining_tick && can_collect && (next_progress >= {1'b0, required_progress});
 	
 	wire place_complete = enable && target_valid && place_pressed && (target_block == 4'd0) && has_neighbor && (place_block != 4'd0);
 	
@@ -117,6 +118,8 @@ module block_interaction (
 			
 			if (break_complete)
 				progress <= 10'd0;
+			else if (next_progress >= {1'b0, required_progress})
+				progress <= required_progress;
 			else 
 				progress <= next_progress[9:0];
 		end

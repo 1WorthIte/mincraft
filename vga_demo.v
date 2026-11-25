@@ -350,22 +350,16 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         // =============================================================
         wire crafting_mode = SW[9];
         wire [4:0] recipe_select = SW[4:0];
-        reg [3:0] craft_switch_previous;
+        reg craft_switch_previous;
 
         always @(posedge CLOCK_50) begin
             if (!Resetn)
-                craft_switch_previous <= 4'd0;
+                craft_switch_previous <= 1'b0;
             else
-                craft_switch_previous <= SW[8:5];
+                craft_switch_previous <= SW[8];
         end
 
-        wire [3:0] craft_switch_edges = SW[8:5] & ~craft_switch_previous;
-        wire craft_pulse = crafting_mode && craft_switch_edges[3];
-        wire test_pickup_pulse = crafting_mode && (|craft_switch_edges[2:0]);
-        wire [4:0] test_pickup_item =
-            craft_switch_edges[2] ? 5'd2 :
-            craft_switch_edges[1] ? 5'd3 :
-            craft_switch_edges[0] ? 5'd4 : 5'd0;
+        wire craft_pulse = crafting_mode && !craft_switch_previous;
 
         wire [17:0] available_recipes;
         wire [44:0] slot_items;
@@ -377,14 +371,37 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         crafting_inventory INVENTORY (
             .clk(CLOCK_50), .resetn(Resetn),
             .recipe_select(recipe_select), .craft_pulse(craft_pulse),
-            .pickup_pulse(test_pickup_pulse),
-            .pickup_item(test_pickup_item), .pickup_count(7'd16),
+            .pickup_pulse(pickup_from_mining),
+            .pickup_item(mined_item), .pickup_count(7'd1),
+				.pickup_can_fit(pickup_can_fit),
             .pickup_accepted(pickup_accepted), .craft_accepted(craft_accepted),
             .available_recipes(available_recipes),
             .slot_items(slot_items), .slot_counts(slot_counts),
             .preview_item(preview_item), .preview_count(preview_count),
             .preview_cell(4'd0), .preview_ingredient(preview_ingredient)
         );
+		  
+		reg [4:0] mined_item;
+		
+		always @(*) begin
+			case (selected_block)
+				4'd1, 4'd2: mined_item = 5'd23;
+				4'd3, 4'd4: mined_item = 5'd4;
+				4'd5: mined_item = 5'd1;
+				4'd6: mined_item = 5'd2;
+				4'd8: mined_item = 5'd5;
+				4'd9: mined_item = 5'd6;
+				default: mined_item = 5'd0;
+			endcase
+		end
+		
+		wire pickup_can_fit;
+		
+		wire can_collect_block = (mined_item == 5'd0) || pickup_can_fit;
+		
+		wire mined_block_pulse = map_write_enable && (map_write_block == 4'd0);
+		
+		wire pickup_from_mining = mined_block_pulse && (mined_item != 5'd0);
 		
 		wire [3:0] held_tool_strength = 4'd1; // hand
 		wire [3:0] held_place_block = 4'd3; // stone
@@ -405,6 +422,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			
 			.tool_strength(held_tool_strength),
 			.place_block(held_place_block),
+			.can_collect(can_collect_block),
 			
 			.write_enable(map_write_enable),
 			.write_col(map_write_col),

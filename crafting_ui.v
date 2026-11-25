@@ -394,7 +394,7 @@ module crafting_ui (
 
     wire [9:0] sprite_address = {icon_y, icon_x};
 
-    wire [8:0] log_color, planks_color, stick_color;
+    wire [8:0] dirt_color, log_color, planks_color, stick_color;
     wire [8:0] cobble_color, iron_color, diamond_color;
 
     wire [8:0] wooden_pick_color, wooden_axe_color;
@@ -416,6 +416,11 @@ module crafting_ui (
         defparam LOG_ROM.n = 9;
         defparam LOG_ROM.Mn = 10;
         defparam LOG_ROM.INIT_FILE = "./MIF/log.mif";
+		  
+	 object_mem DIRT_ROM (sprite_address, clk, dirt_color);
+		  defparam DIRT_ROM.n = 9;
+		  defparam DIRT_ROM.Mn = 10;
+		  defparam DIRT_ROM.INIT_FILE = "./MIF/dirt.mif";
 
     object_mem PLANKS_ROM (sprite_address, clk, planks_color);
         defparam PLANKS_ROM.n = 9;
@@ -602,6 +607,7 @@ module crafting_ui (
             5'd20: sprite_color = diamond_axe_color;
             5'd21: sprite_color = diamond_shovel_color;
             5'd22: sprite_color = diamond_sword_color;
+				5'd23: sprite_color = dirt_color;
 
             default: sprite_color = SLOT_COLOR;
 

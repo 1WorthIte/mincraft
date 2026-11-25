@@ -6,6 +6,7 @@ module crafting_inventory (
     input wire pickup_pulse,
     input wire [4:0] pickup_item,
     input wire [6:0] pickup_count,
+	 output wire pickup_can_fit,
     output reg pickup_accepted,
     output reg craft_accepted,
     output wire [17:0] available_recipes,
@@ -29,6 +30,22 @@ module crafting_inventory (
     integer remaining;
     integer space;
     integer amount;
+	 
+	 integer cap_slot;
+	 integer total_pickup_space;
+	 
+	 always @(*) begin
+		total_pickup_space = 0;
+		
+		for (cap_slot = 0; cap_slot < 9; cap_slot = cap_slot +1) begin
+			if (item_id[cap_slot] == 5'd0)
+				total_pickup_space = total_pickup_space + ((pickup_item >= 5'd7 && pickup_item <= 5'd22) ? 1 : 64);
+			else if (item_id[cap_slot] == pickup_item)
+				total_pickup_space = total_pickup_space + ((pickup_item >= 5'd7 && pickup_item <= 5'd22) ? 1 : 64) - item_count[cap_slot];
+		end
+	  end
+	  
+	 assign pickup_can_fit = (pickup_item != 5'd0) && (pickup_count != 7'd0) && (total_pickup_space >= pickup_count);
 
     genvar j;
     generate
@@ -186,7 +203,7 @@ module crafting_inventory (
 
                 if (next_item[k] == crafted_item && remaining > 0) begin
 
-                    if (crafted_item >= 5'd7)
+                    if (crafted_item >= 5'd7 && crafted_item <= 5'd22)
                         space = 1 - next_count[k];
                     else
                         space = 64 - next_count[k];
@@ -206,7 +223,7 @@ module crafting_inventory (
 
                 if (next_item[k] == 5'd0 && remaining > 0) begin
 
-                    if (crafted_item >= 5'd7)
+                    if (crafted_item >= 5'd7 && crafted_item <= 5'd22)
                         space = 1;
                     else
                         space = 64;
@@ -237,7 +254,7 @@ module crafting_inventory (
 
                 if (next_item[k] == pickup_item && remaining > 0) begin
                     // tools stack to 1, materials to 64
-                    if (pickup_item >= 5'd7)
+                    if (pickup_item >= 5'd7 && pickup_item <= 5'd22)
                         space = 1 - next_count[k];
                     else
                         space = 64 - next_count[k];
@@ -257,7 +274,7 @@ module crafting_inventory (
 
                 if (next_item[k] == 5'd0 && remaining > 0) begin
 
-                    if (pickup_item >= 5'd7)
+                    if (pickup_item >= 5'd7 && pickup_item <= 5'd22)
                         space = 1;
                     else
                         space = 64;
