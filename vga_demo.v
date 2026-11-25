@@ -95,13 +95,15 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     wire Resetn;        // Reset, and synchronized versions of KEYs
     wire PS2_CLK_S, PS2_DAT_S;      // synchronized versions of PS2 signals
 	 
+	 wire [3:0] selection_index;
+	 
 	 reg [9:0] rendered_x;
 	 reg [8:0] rendered_y;
 	 reg [3:0] rendered_index;
 	 
 	 wire position_changed = (steve_x != rendered_x) || (steve_y != rendered_y);
 	 
-	 wire selection_changed = (SW[3:0] != rendered_index);
+	 wire selection_changed = (selection_index != rendered_index);
 	 
     assign Resetn = KEY[0];
 	 
@@ -147,6 +149,13 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	 reg right_down;
 	 reg hit_down;
 	 reg jump_down;
+	 reg break_down;
+	 reg place_down;
+	 
+	 reg up_arrow_down;
+	 reg down_arrow_down;
+	 reg left_arrow_down;
+	 reg right_arrow_down;
 	 
 	 always@(posedge CLOCK_50) begin
 		if (!Resetn) begin
@@ -157,6 +166,15 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			right_down <= 1'b0;
 			hit_down <= 1'b0;
 			jump_down <= 1'b0;
+			
+			break_down <= 1'b0;
+			place_down <= 1'b0;
+			
+			up_arrow_down <= 1'b0;
+			down_arrow_down <= 1'b0;
+			left_arrow_down <= 1'b0;
+			right_arrow_down <= 1'b0;
+			
 		end
 		else if (ps2_rec) begin
 			if (received_byte == 8'hE0) begin
@@ -166,19 +184,43 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			else if (received_byte == 8'hF0) begin
 				release_pending <= 1'b1;
 			end
-			else begin
-				if (!extended_pending) begin
-					case (received_byte)
-						8'h1C: left_down <= !release_pending;
-						8'h23: right_down <= !release_pending;
-						8'h2B: hit_down <= !release_pending;
-						8'h29: jump_down <= !release_pending;
-						default: ;
-					endcase
-				end
-				release_pending <= 1'b0;
-				extended_pending <= 1'b0;
+			
+			if (extended_pending) begin
+				
+				// extended keys: arrow keys
+				
+				case (received_byte)
+					
+					8'h75: up_arrow_down <= !release_pending;
+					8'h72: down_arrow_down <= !release_pending;
+					8'h6B: left_arrow_down <= !release_pending;
+					8'h74: right_arrow_down <= !release_pending;
+					
+					default: ;
+					
+				endcase
 			end
+			
+			else begin
+				// orginary keys: movement, mining and placing
+				
+				case (received_byte)
+				
+					8'h1C: left_down <= !release_pending; // A
+					8'h23: right_down <= !release_pending; // D
+					8'h2B: hit_down <= !release_pending; // F
+					8'h29: jump_down <= !release_pending; // Space
+					
+					8'h32: break_down <= !release_pending; // B
+					8'h4D: place_down <= !release_pending; // P
+					
+					default: ;
+				endcase
+			end
+			
+			release_pending <= 1'b0;
+			extended_pending <= 1'b0;
+			
 		end
 	 end
 	 
@@ -304,8 +346,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		
 			.clk(CLOCK_50),
 			.resetn(Resetn),
-			.key_break(KEY[3]),
-			.key_place(KEY[2]),
+			.key_break(~break_down), // expects active low
+			.key_place(~place_down), // expects active low
 			
 			.enable(map_ready),
 			.target_valid(target_valid && selected_valid),
@@ -328,12 +370,29 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		
 		);
 		
+		selection_control NAV (
+		
+			.clk(CLOCK_50),
+			.resetn(Resetn),
+			
+			.player_x(steve_x),
+			.player_y(steve_y),
+			
+			.up_down(up_arrow_down),
+			.down_down(down_arrow_down),
+			.left_down(left_arrow_down),
+			.right_down(right_arrow_down),
+			
+			.selection_index(selection_index)
+		
+		);
+		
 	
 		block_selector SELECTOR (
 										
 											.player_x(steve_x),
 											.player_y(steve_y),
-											.index(SW[3:0]), // temporary, keyboard not integrated
+											.index(selection_index), // temporary, keyboard not integrated
 											
 											.target_col(selected_col),
 											.target_row(selected_row),
@@ -427,7 +486,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	wire refresh_pending = world_done && S_done && (y_Q == A) &&
 	                       (!drawn_valid || sprite_dirty || world_dirty ||
 	                        steve_x != drawn_x || steve_y != drawn_y ||
-	                        SW[3:0] != drawn_selection ||
+	                        selection_index != drawn_selection ||
                             show_outlines != drawn_outlines);
 	assign refresh_busy = (refresh_state != R_IDLE) || refresh_pending;
 
@@ -469,7 +528,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 				R_IDLE: if (refresh_pending) begin
 					frame_x <= steve_x;
 					frame_y <= steve_y;
-					frame_selection <= SW[3:0];
+					frame_selection <= selection_index;
                     frame_outlines <= show_outlines;
 					restore_c <= 2'd0;
 					restore_r <= 2'd0;
