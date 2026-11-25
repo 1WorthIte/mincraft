@@ -99,7 +99,7 @@ module selection_control (
 		else begin 
 			case (base_row)
 				2'd0: selection_index = (base_col == 2'd3) ? 4'd2 : {2'b000, base_col};
-				2'd1: selection_index = (base_col == 2'd0) ? 4'd3 : 4'd3;
+				2'd1: selection_index = (base_col == 2'd0) ? 4'd3 : 4'd4;
 				2'd2: selection_index = (base_col == 2'd0) ? 4'd5 : 4'd6;
 				2'd3: selection_index = (base_col == 2'd3) ? 4'd9 : 4'd7 + {2'b000, base_col};
 			endcase
