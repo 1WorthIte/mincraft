@@ -338,6 +338,50 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         wire [9:0] mining_progress, mining_required;
         wire mining_active;
 		reg world_dirty;
+
+        // =============================================================
+        // TEMPORARY CRAFTING TEST CONTROLS
+        // SW9 = crafting menu; SW[4:0] = fixed recipe ID (0..17).
+        // Rising edges: SW8 craft; SW7 planks; SW6 sticks; SW5 cobble.
+        // These controls can be replaced by keyboard events later.
+        // =============================================================
+        wire crafting_mode = SW[9];
+        wire [4:0] recipe_select = SW[4:0];
+        reg [3:0] craft_switch_previous;
+
+        always @(posedge CLOCK_50) begin
+            if (!Resetn)
+                craft_switch_previous <= 4'd0;
+            else
+                craft_switch_previous <= SW[8:5];
+        end
+
+        wire [3:0] craft_switch_edges = SW[8:5] & ~craft_switch_previous;
+        wire craft_pulse = crafting_mode && craft_switch_edges[3];
+        wire test_pickup_pulse = crafting_mode && (|craft_switch_edges[2:0]);
+        wire [4:0] test_pickup_item =
+            craft_switch_edges[2] ? 5'd2 :
+            craft_switch_edges[1] ? 5'd3 :
+            craft_switch_edges[0] ? 5'd4 : 5'd0;
+
+        wire [17:0] available_recipes;
+        wire [44:0] slot_items;
+        wire [62:0] slot_counts;
+        wire pickup_accepted, craft_accepted;
+        wire [4:0] preview_item, preview_ingredient;
+        wire [6:0] preview_count;
+
+        crafting_inventory INVENTORY (
+            .clk(CLOCK_50), .resetn(Resetn),
+            .recipe_select(recipe_select), .craft_pulse(craft_pulse),
+            .pickup_pulse(test_pickup_pulse),
+            .pickup_item(test_pickup_item), .pickup_count(7'd16),
+            .pickup_accepted(pickup_accepted), .craft_accepted(craft_accepted),
+            .available_recipes(available_recipes),
+            .slot_items(slot_items), .slot_counts(slot_counts),
+            .preview_item(preview_item), .preview_count(preview_count),
+            .preview_cell(4'd0), .preview_ingredient(preview_ingredient)
+        );
 		
 		wire [3:0] held_tool_strength = 4'd1; // hand
 		wire [3:0] held_place_block = 4'd3; // stone
@@ -349,7 +393,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			.key_break(~break_down), // expects active low
 			.key_place(~place_down), // expects active low
 			
-			.enable(map_ready),
+			.enable(map_ready && !crafting_mode),
 			.target_valid(target_valid && selected_valid),
 			.target_col(selected_col),
 			.target_row(selected_row),
@@ -469,6 +513,54 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		.VGA_write(UI_write)
 	
 	);
+
+    // =============================================================
+    // CRAFTING SCREEN RENDERER
+    // Snapshots ensure a new full-screen pass follows any switch,
+    // inventory, or availability change during an earlier pass.
+    // =============================================================
+    wire [9:0] CRAFT_x;
+    wire [8:0] CRAFT_y, CRAFT_color;
+    wire CRAFT_write, CRAFT_busy;
+    reg crafting_drawn;
+    reg [4:0] drawn_recipe;
+    reg [17:0] drawn_available;
+    reg [44:0] drawn_items;
+    reg [62:0] drawn_counts;
+
+    wire craft_redraw_needed = !crafting_drawn ||
+        drawn_recipe != recipe_select ||
+        drawn_available != available_recipes ||
+        drawn_items != slot_items ||
+        drawn_counts != slot_counts;
+    wire CRAFT_start = crafting_mode && !CRAFT_busy && craft_redraw_needed;
+
+    always @(posedge CLOCK_50) begin
+        if (!Resetn) begin
+            crafting_drawn <= 1'b0;
+            drawn_recipe <= 5'd0;
+            drawn_available <= 18'd0;
+            drawn_items <= 45'd0;
+            drawn_counts <= 63'd0;
+        end else if (!crafting_mode) begin
+            crafting_drawn <= 1'b0;
+        end else if (CRAFT_start) begin
+            crafting_drawn <= 1'b1;
+            drawn_recipe <= recipe_select;
+            drawn_available <= available_recipes;
+            drawn_items <= slot_items;
+            drawn_counts <= slot_counts;
+        end
+    end
+
+    crafting_ui CRAFT_UI (
+        .clk(CLOCK_50), .resetn(Resetn),
+        .start(CRAFT_start), .grant(crafting_mode), .busy(CRAFT_busy),
+        .recipe_select(recipe_select), .available_recipes(available_recipes),
+        .slot_items(slot_items), .slot_counts(slot_counts),
+        .VGA_x(CRAFT_x), .VGA_y(CRAFT_y),
+        .VGA_color(CRAFT_color), .VGA_write(CRAFT_write)
+    );
 	
 	// Refresh the old outline tiles, then paint the new UI and Steve over them.
 	localparam R_IDLE = 4'd0, R_TILE = 4'd1, R_WAIT_TILE = 4'd2,
@@ -580,10 +672,10 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         .required(mining_required),
         .x(BAR_x), .y(BAR_y), .color(BAR_color), .write(BAR_write)
     );
-    assign MUX_x = BAR_write ? BAR_x : UI_busy ? UI_x : world_done ? S_x : W_x;
-    assign MUX_y = BAR_write ? BAR_y : UI_busy ? UI_y : world_done ? S_y : W_y;
-    assign MUX_color = BAR_write ? BAR_color : UI_busy ? UI_color : world_done ? S_color : W_color;
-    assign MUX_write = BAR_write ? 1'b1 :
+    assign MUX_x = crafting_mode ? CRAFT_x : BAR_write ? BAR_x : UI_busy ? UI_x : world_done ? S_x : W_x;
+    assign MUX_y = crafting_mode ? CRAFT_y : BAR_write ? BAR_y : UI_busy ? UI_y : world_done ? S_y : W_y;
+    assign MUX_color = crafting_mode ? CRAFT_color : BAR_write ? BAR_color : UI_busy ? UI_color : world_done ? S_color : W_color;
+    assign MUX_write = crafting_mode ? CRAFT_write : BAR_write ? 1'b1 :
                        UI_busy ? (UI_write && UI_y >= 9'd160) :
                        world_done ? (S_write && S_y >= 9'd160) :
                                     (W_write && W_y >= 9'd160); // prevents both world renderer and steve from overwriting the top 160 pixrls
