@@ -359,7 +359,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
                 craft_switch_previous <= SW[8];
         end
 
-        wire craft_pulse = crafting_mode && !craft_switch_previous;
+        wire craft_pulse = crafting_mode && SW[8] && !craft_switch_previous;
 
         wire [17:0] available_recipes;
         wire [44:0] slot_items;
@@ -491,10 +491,20 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	wire [4:0] tile_redraw_col;
 	wire [3:0] tile_redraw_row;
 	wire tile_redraw_done;
+	wire restoration_active;
+	localparam [2:0] REST_IDLE = 3'd0, REST_TOP_START = 3'd1,
+	                 REST_TOP_WAIT = 3'd2, REST_WORLD_RESET = 3'd3,
+	                 REST_WORLD_WAIT = 3'd4;
+	reg [2:0] restore_state;
 	
 	world W (
 	
-		.Resetn(Resetn & map_ready), .Clock(CLOCK_50), .redraw_req(tile_redraw_req), .redraw_col(tile_redraw_col), .redraw_row(tile_redraw_row), .redraw_done(tile_redraw_done), 
+		// Re-run only the world renderer's boot drawing pass.
+		// MAP, INVENTORY, and Steve are NOT reset.
+		.Resetn(Resetn & map_ready & !(restore_state == REST_WORLD_RESET)),
+		.Clock(CLOCK_50), .redraw_req(tile_redraw_req),
+		.redraw_col(tile_redraw_col), .redraw_row(tile_redraw_row),
+		.redraw_done(tile_redraw_done),
 		.VGA_x(W_x), .VGA_y(W_y), .VGA_color(W_color), .VGA_write(W_write),
 		.done(world_done), .TC(world_col), .TR(world_row), .block(world_block)
 	
@@ -575,13 +585,61 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     end
 
     crafting_ui CRAFT_UI (
-        .clk(CLOCK_50), .resetn(Resetn),
+        .clk(CLOCK_50), .resetn(Resetn && crafting_mode),
         .start(CRAFT_start), .grant(crafting_mode), .busy(CRAFT_busy),
         .recipe_select(recipe_select), .available_recipes(available_recipes),
         .slot_items(slot_items), .slot_counts(slot_counts),
         .VGA_x(CRAFT_x), .VGA_y(CRAFT_y),
         .VGA_color(CRAFT_color), .VGA_write(CRAFT_write)
     );
+
+    // SW9 changes which renderer can WRITE the VGA framebuffer; the pixels
+    // already in framebuffer memory do not disappear when SW9 is switched off.
+    // Restore the original upper background, rebuild the live block map, then
+    // let the ordinary refresh FSM redraw selection outlines and Steve.
+    reg crafting_mode_previous;
+    wire crafting_closed = crafting_mode_previous && !crafting_mode;
+    assign restoration_active = (restore_state != REST_IDLE);
+
+    wire [9:0] REST_x;
+    wire [8:0] REST_y, REST_color;
+    wire REST_write, REST_busy;
+    wire restoring_top = (restore_state == REST_TOP_START) ||
+                         (restore_state == REST_TOP_WAIT);
+
+    background_restore RESTORE_BACKGROUND (
+        .clk(CLOCK_50), .resetn(Resetn && !crafting_mode),
+        .start(restore_state == REST_TOP_START), .busy(REST_busy),
+        .VGA_x(REST_x), .VGA_y(REST_y),
+        .VGA_color(REST_color), .VGA_write(REST_write)
+    );
+
+    always @(posedge CLOCK_50) begin
+        if (!Resetn) begin
+            crafting_mode_previous <= 1'b0;
+            restore_state <= REST_IDLE;
+        end else begin
+            crafting_mode_previous <= crafting_mode;
+
+            // If the menu reopens during restoration, restart from the
+            // beginning the next time it closes.
+            if (crafting_mode)
+                restore_state <= REST_IDLE;
+            else begin
+                case (restore_state)
+                    REST_IDLE: if (crafting_closed)
+                        restore_state <= REST_TOP_START;
+                    REST_TOP_START: restore_state <= REST_TOP_WAIT;
+                    REST_TOP_WAIT: if (!REST_busy && !REST_write)
+                        restore_state <= REST_WORLD_RESET;
+                    REST_WORLD_RESET: restore_state <= REST_WORLD_WAIT;
+                    REST_WORLD_WAIT: if (world_done)
+                        restore_state <= REST_IDLE;
+                    default: restore_state <= REST_IDLE;
+                endcase
+            end
+        end
+    end
 	
 	// Refresh the old outline tiles, then paint the new UI and Steve over them.
 	localparam R_IDLE = 4'd0, R_TILE = 4'd1, R_WAIT_TILE = 4'd2,
@@ -596,12 +654,14 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	reg drawn_valid, sprite_dirty;
     reg drawn_outlines, frame_outlines;
 
-	wire refresh_pending = world_done && S_done && (y_Q == A) &&
+	wire refresh_pending = !crafting_mode && !restoration_active &&
+                           world_done && S_done && (y_Q == A) &&
 	                       (!drawn_valid || sprite_dirty || world_dirty ||
 	                        steve_x != drawn_x || steve_y != drawn_y ||
 	                        selection_index != drawn_selection ||
                             show_outlines != drawn_outlines);
-	assign refresh_busy = (refresh_state != R_IDLE) || refresh_pending;
+	assign refresh_busy = (refresh_state != R_IDLE) || refresh_pending ||
+                          crafting_mode || restoration_active;
 
 	wire signed [6:0] restore_col = $signed({2'b00, drawn_x[9:5]}) +
 	                                $signed({5'b0, restore_c}) - 7'sd1;
@@ -628,6 +688,14 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			frame_selection <= 4'd0;
             drawn_outlines <= 1'b1;
             frame_outlines <= 1'b1;
+			drawn_valid <= 1'b0;
+			sprite_dirty <= 1'b0;
+			world_dirty <= 1'b0;
+		end
+		else if (crafting_mode || restoration_active) begin
+			// Menu rendering can interrupt a normal tile/selection refresh.
+			// The restoration sequence will repaint everything from scratch.
+			refresh_state <= R_IDLE;
 			drawn_valid <= 1'b0;
 			sprite_dirty <= 1'b0;
 			world_dirty <= 1'b0;
@@ -693,13 +761,25 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         .required(mining_required),
         .x(BAR_x), .y(BAR_y), .color(BAR_color), .write(BAR_write)
     );
-    assign MUX_x = crafting_mode ? CRAFT_x : BAR_write ? BAR_x : UI_busy ? UI_x : world_done ? S_x : W_x;
-    assign MUX_y = crafting_mode ? CRAFT_y : BAR_write ? BAR_y : UI_busy ? UI_y : world_done ? S_y : W_y;
-    assign MUX_color = crafting_mode ? CRAFT_color : BAR_write ? BAR_color : UI_busy ? UI_color : world_done ? S_color : W_color;
-    assign MUX_write = crafting_mode ? CRAFT_write : BAR_write ? 1'b1 :
+	assign MUX_x = crafting_mode ? CRAFT_x :
+                   restoring_top ? REST_x :
+                   restoration_active ? W_x :
+                   BAR_write ? BAR_x : UI_busy ? UI_x : world_done ? S_x : W_x;
+	assign MUX_y = crafting_mode ? CRAFT_y :
+                   restoring_top ? REST_y :
+                   restoration_active ? W_y :
+                   BAR_write ? BAR_y : UI_busy ? UI_y : world_done ? S_y : W_y;
+	assign MUX_color = crafting_mode ? CRAFT_color :
+                       restoring_top ? REST_color :
+                       restoration_active ? W_color :
+                       BAR_write ? BAR_color : UI_busy ? UI_color : world_done ? S_color : W_color;
+	assign MUX_write = crafting_mode ? CRAFT_write :
+                       restoring_top ? REST_write :
+                       restoration_active ? (W_write && W_y >= 9'd160) :
+                       BAR_write ? 1'b1 :
                        UI_busy ? (UI_write && UI_y >= 9'd160) :
                        world_done ? (S_write && S_y >= 9'd160) :
-                                    (W_write && W_y >= 9'd160); // prevents both world renderer and steve from overwriting the top 160 pixrls
+                                    (W_write && W_y >= 9'd160); // Preserve the upper HUD during normal gameplay.
 	 
 	 // display PS2 data
     hex7seg H0 (Serial[4:1], HEX0);
