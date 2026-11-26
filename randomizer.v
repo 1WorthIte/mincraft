@@ -1,25 +1,35 @@
 `timescale 1ns / 1ns
 
-module randomizer (CLOCK_50, SW, LEDR);
-    input CLOCK_50;
-    input [9:0] SW;
-    output [9:0] LEDR;
+module randomizer_core (
 
-    wire Clock;
-    wire Enable;
-    wire Resetn;
-    wire Print;
+	Clock,
+	Resetn,
+	Enable,
+	start_seed,
+	read_row,
+	read_col,
+	generated_block,
+	generator_done
 
-    wire [15:0] start_seed = 16'hABCD;
+);
 
-    assign LEDR = SW;
-    assign Clock = CLOCK_50;
-    assign Enable = SW[1];
-    assign Resetn = SW[2];
-    assign Print = SW[0];
+    input Clock;
+    input Resetn;
+    input Enable;
+
+    input [15:0] start_seed;
+	 
+	 input [3:0] read_row;
+	 input [4:0] read_col;
+	 
+	 output [3:0] generated_block;
+	 output generator_done;
 
     // each cell stores 4 bit block ID
     reg [3:0] map [0:14][0:19];
+	 
+	 assign generator_done = trees_done;
+	 assign generated_block = (generator_done && read_row < 4'd15 && read_col < 5'd20) ? map[read_row][read_col] : 4'd0;	 
 
     reg [3:0] fill_row; // remembers which row to write next
     reg [4:0] fill_col; // remembers which col to write next
@@ -27,11 +37,63 @@ module randomizer (CLOCK_50, SW, LEDR);
 
     reg caves_done;
 
+    reg trees_done;
+
+    localparam T_PICK = 3'd0,
+               T_BOUNDS = 3'd1,
+               T_CHECK = 3'd2,
+               T_DRAW = 3'd3,
+               T_NEXT = 3'd4,
+               T_DONE = 3'd5;
+
+    reg [2:0] tree_state;
+
+    reg [4:0] tree_col;
+    reg [3:0] tree_base_row;
+
+    reg [2:0] trunk_height;
+    reg tree_type; // 0 - rect, 1 - triangle
+
+    reg [1:0] tree_x;
+    reg [2:0] tree_y;
+
     localparam C_PICK   = 3'd0,
                C_BOUNDS = 3'd1,
                C_CHECK  = 3'd2,
                C_DRAW   = 3'd3,
                C_DONE   = 3'd4;
+
+    wire [3:0] tree_map_row;
+    wire [4:0] tree_map_col;
+
+    wire tree_is_log;
+    wire tree_is_leaf;
+    wire tree_cell_used;
+    wire tree_last_cell;
+
+    assign tree_map_row = tree_base_row - tree_y;
+    assign tree_map_col = tree_col - 5'd1 + tree_x;
+
+    // Logs only occupy the middle column
+    assign tree_is_log =
+        (tree_x == 2'd1) &&
+        (tree_y <= trunk_height);
+
+    // Leaves occupy two complete rows above the trunk
+    assign tree_is_leaf =
+        (tree_y == trunk_height + 3'd1) ||  // bottom of tree is always three blocks wide
+        (
+            (tree_y == trunk_height + 3'd2) && (!tree_type || tree_x == 2'd1)
+        );
+
+    // Does this position belong to the tree?
+    assign tree_cell_used =
+        tree_is_log || tree_is_leaf;
+
+    // Have we reached the final cell of the tree region?
+    assign tree_last_cell =
+        (tree_x == 2'd2) &&
+        (tree_y == trunk_height + 3'd2);
 
     reg [2:0] cave_state;
 
@@ -70,11 +132,26 @@ module randomizer (CLOCK_50, SW, LEDR);
          (cave_y == cave_height - 3'd2));
 
     wire [15:0] random_value;
+	 
+	 reg seed_loaded;
+	 
+	 wire loaded_seed;
+	 wire generation_enable;
+	 
+	 assign load_seed = Enable && seed_loaded;
+	 
+	 always @(posedge Clock) begin
+			
+			if (!Resetn) seed_loaded <= 1'b0;
+			else if (load_seed) seed_loaded <= 1'b1;
+			
+	 end 
 
     lfsr RNG (
-        .Clock(CLOCK_50),
+        .Clock(Clock),
         .Resetn(Resetn),
-        .Enable(Enable && !caves_done), // advance each enabled clock until world is finished
+        .Enable(Enable && !trees_done), // advance each enabled clock until world is finished
+		  .LoadSeed(load_seed),
         .random_value(random_value),
         .start_seed(start_seed)
     );
@@ -85,16 +162,12 @@ module randomizer (CLOCK_50, SW, LEDR);
     terrain_profile TERRAIN (
         .Clock(Clock),
         .Resetn(Resetn),
-        .Enable(Enable),
+        .Enable(generation_enable),
         .random_value(random_value),
-        .read_col(fill_col),
+        .read_col(done ? tree_col : fill_col),
         .surface_row(surface_row),
         .ready(terrain_ready)
     );
-
-    always @ (negedge Enable) begin // Enable 0->1: LFSR advances at every clock edge until done, 1->0 updated value prints
-        $display ("LFSR: decimal = %0d, hex = %h", random_value, random_value);
-    end
 
     always @ (posedge Clock) begin
 
@@ -117,9 +190,21 @@ module randomizer (CLOCK_50, SW, LEDR);
             cave_y <= 3'd0;
 
             cave_attempts <= 7'd0;
+
+            trees_done <= 1'b0;
+            tree_state <= T_PICK;
+
+            tree_col <= 5'd1;
+            tree_base_row <= 4'd0;
+
+            trunk_height <= 3'd3;
+            tree_type <= 1'b1;
+
+            tree_x <= 2'd0;
+            tree_y <= 3'd1;
         end
 
-        else if (Enable && !done && terrain_ready) begin
+        else if (generation_enable && !done && terrain_ready) begin
 
             // write the block at the current coordinates
 
@@ -158,7 +243,7 @@ module randomizer (CLOCK_50, SW, LEDR);
             end
         end
 
-        else if (Enable && done && !caves_done) begin
+        else if (generation_enable && done && !caves_done) begin
             case (cave_state)
 
                 C_PICK: begin
@@ -276,61 +361,170 @@ module randomizer (CLOCK_50, SW, LEDR);
 
             endcase
         end
-    end
 
-    // print helper task
-    task print_world;
-        integer row, col;
-        begin
-            $display("");
-            $display("Current generated world :) :");
-            $display("");
+        // Tree generation
+        else if (generation_enable && done && caves_done && !trees_done) begin
+            case (tree_state)
 
-            $display("      1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 ");
-            $display("      ------------------------------------------------------------");
+                T_PICK: begin
 
-            for (row = 0; row < 15; row = row + 1) begin
-                for (col = 0; col < 20; col = col + 1) begin
-                    // Print the row label before the first cell.
-                    if (col == 0 && row < 9) begin
-                        $write("%0d   | ", row + 1);
+                    // 25% chance of attempting a tree
+                    if (random_value[1:0] == 2'b00) begin
+
+                        tree_base_row <= surface_row;
+
+                        // Random trunk height: 2, 3 or 4
+                        case (random_value[3:2])
+                            2'b00: trunk_height <= 3'd2;
+                            2'b01: trunk_height <= 3'd3;
+                            2'b10: trunk_height <= 3'd4;
+                            default: trunk_height <= 3'd3;
+                        endcase
+
+                        // Random canopy shape
+                        tree_type <= random_value[4];
+
+                        tree_x <= 2'd0;
+                        tree_y <= 3'd1;
+
+                        tree_state <= T_BOUNDS;
+
                     end
-                    else if (col == 0 && row >= 9) begin
-                        $write("%0d  | ", row + 1);
-                    end
 
-                    // Independently print every cell, including column 0.
-                    if (row <= 4) begin
-                        $write("X  ");
-                    end
                     else begin
-                        $write("%0d  ", map[row][col]);
+                        tree_state <= T_NEXT;
                     end
+
                 end
 
-                $display("");
-            end
-            $display ("");
-        end
-    endtask
+                T_BOUNDS: begin
 
-    // Print each time SW[0] changes from 0 to 1.
-    always @(posedge Print) begin
-        
-        if (Resetn && caves_done) begin
-            print_world;
-        end
-        else begin 
-            $display ("world is not ready yet");
+                    // Horizontal bounds
+                    if (
+                        (tree_col < 5'd1) ||
+                        (tree_col > 5'd18)
+                    ) begin
+                        tree_state <= T_NEXT;
+                    end
+
+                    // Not enough space for even the smallest tree
+                    else if (tree_base_row < 4'd9) begin
+                        tree_state <= T_NEXT;
+                    end
+
+                    // Reduce the trunk height until the tree fits
+                    else if (tree_base_row < trunk_height + 4'd7) begin
+                        trunk_height <= trunk_height - 3'd1;
+                    end
+
+                    // Ensure the tree is on grass
+                    else if (map[tree_base_row][tree_col] != 4'd1) begin
+                        tree_state <= T_NEXT;
+                    end
+
+                    else begin
+                        tree_state <= T_CHECK;
+                    end
+
+                end
+
+                T_CHECK: begin
+
+                    // Every intended log/leaf position must be air
+                    if (
+                        tree_cell_used &&
+                        map[tree_map_row][tree_map_col] != 4'd0
+                    ) begin
+                        tree_state <= T_NEXT;
+                    end
+
+                    else if (tree_last_cell) begin
+
+                        // Every position passed, start drawing
+                        tree_x <= 2'd0;
+                        tree_y <= 3'd1;
+
+                        tree_state <= T_DRAW;
+
+                    end
+
+                    else if (tree_x == 2'd2) begin
+
+                        // Move one row upwards
+                        tree_x <= 2'd0;
+                        tree_y <= tree_y + 3'd1;
+
+                    end
+
+                    else begin
+                        tree_x <= tree_x + 2'd1;
+                    end
+
+                end
+
+                T_DRAW: begin
+
+                    // Write the appropriate block
+                    if (tree_is_log) begin
+                        map[tree_map_row][tree_map_col] <= 4'd5;
+                    end
+
+                    else if (tree_is_leaf) begin
+                        map[tree_map_row][tree_map_col] <= 4'd7;
+                    end
+
+                    // Advance through the tree region
+                    if (tree_last_cell) begin
+                        tree_state <= T_NEXT;
+                    end
+
+                    else if (tree_x == 2'd2) begin
+                        tree_x <= 2'd0;
+                        tree_y <= tree_y + 3'd1;
+                    end
+
+                    else begin
+                        tree_x <= tree_x + 2'd1;
+                    end
+
+                end
+
+                T_NEXT: begin
+
+                    if (tree_col == 5'd18) begin
+
+                        // Finished scanning all valid columns
+                        tree_state <= T_DONE;
+
+                    end
+
+                    else begin
+
+                        // Consider the next column
+                        tree_col <= tree_col + 5'd1;
+                        tree_state <= T_PICK;
+
+                    end
+
+                end
+
+                T_DONE: begin
+                    trees_done <= 1'b1;
+                end
+
+                default: tree_state <= T_PICK;
+
+            endcase
         end
     end
 
 endmodule
 
-module lfsr (Clock, Resetn, Enable, random_value, start_seed);
+module lfsr (Clock, Resetn, Enable, LoadSeed, random_value, start_seed);
 
-    input Clock, Resetn, Enable;
+    input Clock, Resetn, Enable, LoadSeed;
     input [15:0] start_seed;
+	 
     output reg [15:0] random_value;
 
     wire feedback;
@@ -344,9 +538,17 @@ module lfsr (Clock, Resetn, Enable, random_value, start_seed);
 
         if (!Resetn) begin
 
-            random_value <= start_seed;
+            random_value <= 16'h0001;
 
         end
+		  
+		  else if (LoadSeed) begin
+		  
+				// prevent the lfsr from getting stuck at 0
+				if (start_seed == 16'd0) random_value <= 16'h0001;
+				else random_value <= start_seed;
+				
+			end
 
         else if (Enable) begin
             
