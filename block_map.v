@@ -61,7 +61,7 @@ module block_map(
 		
 		reg [8:0] init_address;
 		reg [3:0] init_row;
-		reg [3:0] init_col;
+		reg [4:0] init_col;
 		
 		// randomizer signals
 		wire generator_done;
