@@ -135,10 +135,11 @@ module randomizer_core (
 	 
 	 reg seed_loaded;
 	 
-	 wire loaded_seed;
+	 wire load_seed;
 	 wire generation_enable;
 	 
-	 assign load_seed = Enable && seed_loaded;
+	 assign load_seed = Enable && !seed_loaded;
+	 assign generation_enable = Enable && seed_loaded;
 	 
 	 always @(posedge Clock) begin
 			
@@ -150,7 +151,7 @@ module randomizer_core (
     lfsr RNG (
         .Clock(Clock),
         .Resetn(Resetn),
-        .Enable(Enable && !trees_done), // advance each enabled clock until world is finished
+        .Enable(generation_enable && !trees_done), // advance each enabled clock until world is finished
 		  .LoadSeed(load_seed),
         .random_value(random_value),
         .start_seed(start_seed)
