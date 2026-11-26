@@ -53,16 +53,45 @@ module block_map(
 		output wire [3:0] read8_right_block
 		);
 		
+		// ********************************************************************************************************************************************
+		
 		localparam STONE = 4'd3;
-		reg [3:0] seed [0:299]; // fixed starting layout 20x15
-		reg [3:0] tiles [0:14][0:19]; // live world tiles[row][col]
-		reg [8:0] init_address; // entry in the 1D seed
+		
+		reg [3:0] tiles [0:14][0:19];
+		
+		reg [8:0] init_address;
 		reg [3:0] init_row;
 		reg [4:0] init_col;
 		
-		initial begin 
-			$readmemh("./MIF/world_seed.hex", seed);
+		// randomizer signals
+		wire generator_done;
+		wire [3:0] generated_block;
+		
+		// free-running seed counter:
+		reg [15:0] seed_counter = 16'd0;
+		
+		always @(posedge Clock) begin
+			seed_counter <= seed_counter + 16'd1;
 		end
+		
+		randomizer_core GEN (
+		
+			.Clock(Clock),
+			.Resetn(Resetn),
+			.Enable(1'b1),
+			
+			.start_seed(seed_counter),
+			
+			.read_row(init_row),
+			.read_col(init_col),
+			
+			.generated_block(generated_block),
+			.generator_done(generator_done)
+		
+		);
+		
+		
+		// ********************************************************************************************************************************************
 			
 		// no game write accepted until the entire map is ready
 		
@@ -73,30 +102,42 @@ module block_map(
 				init_address <= 9'd0;
 				init_row <= 4'd0;
 				init_col <= 5'd0;
+				
 				ready <= 1'b0;
+				
 			end
+			
 			else if (!ready) begin
-				
-				tiles[init_row][init_col] <= seed[init_address];
-				// tiles[init_row][init_col] <= (init_row < 4'd9) ? 4'd0 : (init_row == 4'd9) ? 4'd1 : 4'd2;
-				
-				if (init_address == 9'd299) begin
-					ready <= 1'b1;
-				end
-				else begin
-				
-					init_address <= init_address + 1'b1;
+			
+				// wait until randomizer has finished 
+				if (generator_done) begin
 					
-					if (init_col == 5'd19) begin 
-						init_col <= 5'd0;
-						init_row <= init_row + 1'b1;
+					// copy one generated block per clock cycle
+					tiles[init_row][init_col] <= generated_block;
+					
+					if (init_address == 9'd299) begin
+					
+						// all blocks are generated
+						ready <= 1'b1;
+						
 					end
-					else begin 
-						init_col <= init_col + 1'b1;
+					
+					else begin
+					
+						init_address <= init_address + 1'b1;
+						
+						if (init_col == 5'd19) begin
+							init_col <= 5'd0;
+							init_row <= init_row + 1'b1;
+						end
+						else begin
+							init_col <= init_col + 1'b1;
+						end
 					end
 				end
 			end
 			
+			// normal gameplay, mining and placement
 			else if (write_enable && write_col < 5'd20 && write_row < 4'd15) begin
 				tiles[write_row][write_col] <= write_block;
 			end
