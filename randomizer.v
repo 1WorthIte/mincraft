@@ -1,25 +1,35 @@
 `timescale 1ns / 1ns
 
-module randomizer (CLOCK_50, SW, LEDR);
-    input CLOCK_50;
-    input [9:0] SW;
-    output [9:0] LEDR;
+module randomizer_core (
 
-    wire Clock;
-    wire Enable;
-    wire Resetn;
-    wire Print;
+	Clock,
+	Resetn,
+	Enable,
+	start_seed,
+	read_row,
+	read_col,
+	generated_block,
+	generator_done
 
-    wire [15:0] start_seed = 16'hAB4D;
+);
 
-    assign LEDR = SW;
-    assign Clock = CLOCK_50;
-    assign Enable = SW[1];
-    assign Resetn = SW[2];
-    assign Print = SW[0];
+    input Clock;
+    input Resetn;
+    input Enable;
+
+    input [15:0] start_seed;
+	 
+	 input [3:0] read_row;
+	 input [4:0] read_col;
+	 
+	 output [3:0] generated_block;
+	 output generator_done;
 
     // each cell stores 4 bit block ID
     reg [3:0] map [0:14][0:19];
+	 
+	 assign generator_done = trees_done;
+	 assign generated_block = (generator_done && read_row < 4'd15 && read_col < 5'd20) ? map[read_row][read_col] : 4'd0;	 
 
     reg [3:0] fill_row; // remembers which row to write next
     reg [4:0] fill_col; // remembers which col to write next
@@ -122,11 +132,27 @@ module randomizer (CLOCK_50, SW, LEDR);
          (cave_y == cave_height - 3'd2));
 
     wire [15:0] random_value;
+	 
+	 reg seed_loaded;
+	 
+	 wire load_seed;
+	 wire generation_enable;
+	 
+	 assign load_seed = Enable && !seed_loaded;
+	 assign generation_enable = Enable && seed_loaded;
+	 
+	 always @(posedge Clock) begin
+			
+			if (!Resetn) seed_loaded <= 1'b0;
+			else if (load_seed) seed_loaded <= 1'b1;
+			
+	 end 
 
     lfsr RNG (
-        .Clock(CLOCK_50),
+        .Clock(Clock),
         .Resetn(Resetn),
-        .Enable(Enable && !trees_done), // advance each enabled clock until world is finished
+        .Enable(generation_enable && !trees_done), // advance each enabled clock until world is finished
+		  .LoadSeed(load_seed),
         .random_value(random_value),
         .start_seed(start_seed)
     );
@@ -137,16 +163,12 @@ module randomizer (CLOCK_50, SW, LEDR);
     terrain_profile TERRAIN (
         .Clock(Clock),
         .Resetn(Resetn),
-        .Enable(Enable),
+        .Enable(generation_enable),
         .random_value(random_value),
         .read_col(done ? tree_col : fill_col),
         .surface_row(surface_row),
         .ready(terrain_ready)
     );
-
-    always @ (negedge Enable) begin // Enable 0->1: LFSR advances at every clock edge until done, 1->0 updated value prints
-        $display ("LFSR: decimal = %0d, hex = %h", random_value, random_value);
-    end
 
     always @ (posedge Clock) begin
 
@@ -183,7 +205,7 @@ module randomizer (CLOCK_50, SW, LEDR);
             tree_y <= 3'd1;
         end
 
-        else if (Enable && !done && terrain_ready) begin
+        else if (generation_enable && !done && terrain_ready) begin
 
             // write the block at the current coordinates
 
@@ -222,7 +244,7 @@ module randomizer (CLOCK_50, SW, LEDR);
             end
         end
 
-        else if (Enable && done && !caves_done) begin
+        else if (generation_enable && done && !caves_done) begin
             case (cave_state)
 
                 C_PICK: begin
@@ -342,7 +364,7 @@ module randomizer (CLOCK_50, SW, LEDR);
         end
 
         // Tree generation
-        else if (Enable && done && caves_done && !trees_done) begin
+        else if (generation_enable && done && caves_done && !trees_done) begin
             case (tree_state)
 
                 T_PICK: begin
@@ -497,59 +519,13 @@ module randomizer (CLOCK_50, SW, LEDR);
         end
     end
 
-    // print helper task
-    task print_world;
-        integer row, col;
-        begin
-            $display("");
-            $display("Current generated world :) :");
-            $display("");
-
-            $display("      1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 ");
-            $display("      ------------------------------------------------------------");
-
-            for (row = 0; row < 15; row = row + 1) begin
-                for (col = 0; col < 20; col = col + 1) begin
-                    // Print the row label before the first cell.
-                    if (col == 0 && row < 9) begin
-                        $write("%0d   | ", row + 1);
-                    end
-                    else if (col == 0 && row >= 9) begin
-                        $write("%0d  | ", row + 1);
-                    end
-
-                    // Independently print every cell, including column 0.
-                    if (row <= 4) begin
-                        $write("X  ");
-                    end
-                    else begin
-                        $write("%0d  ", map[row][col]);
-                    end
-                end
-
-                $display("");
-            end
-            $display ("");
-        end
-    endtask
-
-    // Print each time SW[0] changes from 0 to 1.
-    always @(posedge Print) begin
-        
-        if (Resetn && trees_done) begin
-            print_world;
-        end
-        else begin 
-            $display ("world is not ready yet");
-        end
-    end
-
 endmodule
 
-module lfsr (Clock, Resetn, Enable, random_value, start_seed);
+module lfsr (Clock, Resetn, Enable, LoadSeed, random_value, start_seed);
 
-    input Clock, Resetn, Enable;
+    input Clock, Resetn, Enable, LoadSeed;
     input [15:0] start_seed;
+	 
     output reg [15:0] random_value;
 
     wire feedback;
@@ -563,9 +539,17 @@ module lfsr (Clock, Resetn, Enable, random_value, start_seed);
 
         if (!Resetn) begin
 
-            random_value <= start_seed;
+            random_value <= 16'h0001;
 
         end
+		  
+		  else if (LoadSeed) begin
+		  
+				// prevent the lfsr from getting stuck at 0
+				if (start_seed == 16'd0) random_value <= 16'h0001;
+				else random_value <= start_seed;
+				
+			end
 
         else if (Enable) begin
             
