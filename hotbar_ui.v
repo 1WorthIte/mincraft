@@ -15,7 +15,7 @@ module hotbar_ui (
     output wire [8:0] VGA_color,
     output wire VGA_write
 );
-    localparam [9:0] FIRST_ICON_X = 10'd318;
+    localparam [9:0] FIRST_ICON_X = 10'd316;
     localparam [8:0] FIRST_ICON_Y = 9'd4;
     localparam [9:0] ICON_PITCH = 10'd36;
 
@@ -222,7 +222,7 @@ module hotbar_ui (
             delayed_y <= 9'd0;
             delayed_item <= 5'd0;
             delayed_write <= 1'b0;
-				delayed_selected_border <= selected_border;
+				delayed_selected_border <= 1'b0;
             background_index <= 3'd0;
 				latched_selected_slot <= 4'd0;
         end else begin
@@ -231,6 +231,7 @@ module hotbar_ui (
             delayed_y <= draw_y;
             delayed_item <= current_item;
             delayed_write <= busy && grant;
+				delayed_selected_border <= selected_border;
 
             if (!busy) begin
                 if (start && grant) begin
@@ -295,7 +296,11 @@ module hotbar_ui (
 
     assign VGA_x = delayed_x;
     assign VGA_y = delayed_y;
-    assign VGA_color = delayed_selected_border ? 9'b111_111_000 : (delayed_item == 5'd0) ? background_color : sprite_color;
+    assign VGA_color = delayed_selected_border ? 9'b111_111_000 : 
+	 (delayed_item == 5'd0 || 
+	 ((delayed_item == 5'd3 ||
+	 (delayed_item >= 5'd7 && delayed_item <= 5'd22)) &&
+	 sprite_color == 9'h1FF)) ? background_color : sprite_color;
     assign VGA_write = delayed_write;
 endmodule
 

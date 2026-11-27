@@ -619,9 +619,10 @@ module crafting_ui (
     assign VGA_x = delayed_x;
     assign VGA_y = delayed_y;
 
-    assign VGA_color = delayed_icon ?
-                       sprite_color :
-                       delayed_base_color;
+    assign VGA_color = (delayed_icon &&
+	 !((delayed_item == 5'd3 ||
+	 (delayed_item >= 5'd7 && delayed_item <= 5'd22)) &&
+	 sprite_color == 9'h1FF)) ? sprite_color : delayed_base_color;
 
     assign VGA_write = delayed_write;
 

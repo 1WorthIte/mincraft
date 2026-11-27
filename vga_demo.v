@@ -145,6 +145,11 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	 reg release_pending;
 	 reg extended_pending;
 	 
+	 reg crafting_mode;
+	 reg craft_pulse;
+	 reg e_down;
+	 reg enter_down;
+	 
 	 reg left_down;
 	 reg right_down;
 	 reg hit_down;
@@ -219,14 +224,14 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 						8'h4D: place_down <= !release_pending; // P
 						
 						8'h16: if (!release_pending) held_slot <= 4'd0; // 1
-						8'h1E: if (!release_pending) held_slot <= 4'd0; // 2
-						8'h26: if (!release_pending) held_slot <= 4'd0; // 3
-						8'h25: if (!release_pending) held_slot <= 4'd0; // 4
-						8'h2E: if (!release_pending) held_slot <= 4'd0; // 5
-						8'h36: if (!release_pending) held_slot <= 4'd0; // 6
-						8'h3D: if (!release_pending) held_slot <= 4'd0; // 7
-						8'h3E: if (!release_pending) held_slot <= 4'd0; // 8
-						8'h46: if (!release_pending) held_slot <= 4'd0; // 9
+						8'h1E: if (!release_pending) held_slot <= 4'd1; // 2
+						8'h26: if (!release_pending) held_slot <= 4'd2; // 3
+						8'h25: if (!release_pending) held_slot <= 4'd3; // 4
+						8'h2E: if (!release_pending) held_slot <= 4'd4; // 5
+						8'h36: if (!release_pending) held_slot <= 4'd5; // 6
+						8'h3D: if (!release_pending) held_slot <= 4'd6; // 7
+						8'h3E: if (!release_pending) held_slot <= 4'd7; // 8
+						8'h46: if (!release_pending) held_slot <= 4'd8; // 9
 					
 						default: ;
 					endcase
@@ -238,6 +243,54 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		end
 		end
 	 end
+	 
+	 // crafting keyboard controls
+
+	always @(posedge CLOCK_50) begin
+		 if (!Resetn) begin
+			  crafting_mode <= 1'b0;
+			  craft_pulse <= 1'b0;
+			  e_down <= 1'b0;
+			  enter_down <= 1'b0;
+		 end
+		 else begin
+			  craft_pulse <= 1'b0;
+
+			  if (ps2_rec &&
+					!extended_pending &&
+					received_byte != 8'hE0 &&
+					received_byte != 8'hF0) begin
+
+					case (received_byte)
+
+						 // E key
+						 8'h24: begin
+							  if (release_pending)
+									e_down <= 1'b0;
+							  else if (!e_down) begin
+									e_down <= 1'b1;
+									crafting_mode <= ~crafting_mode;
+							  end
+						 end
+
+						 // Enter key
+						 8'h5A: begin
+							  if (release_pending)
+									enter_down <= 1'b0;
+							  else if (!enter_down) begin
+									enter_down <= 1'b1;
+
+									if (crafting_mode)
+										 craft_pulse <= 1'b1;
+							  end
+						 end
+
+						 default: ;
+
+					endcase
+			  end
+		 end
+	end
 	 
 	 // choose which action to request
 	 
@@ -355,48 +408,30 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         wire mining_active;
 		reg world_dirty;
 
-        // =============================================================
-        // TEMPORARY CRAFTING TEST CONTROLS
-        // SW9 = crafting menu; SW[4:0] = fixed recipe ID (0..17).
-        // Rising edges: SW8 craft; SW7 planks; SW6 sticks; SW5 cobble.
-        // These controls can be replaced by keyboard events later.
-        // =============================================================
-        wire crafting_mode = SW[9];
-        wire [4:0] recipe_select = SW[4:0];
-		  
-        reg [2:0] craft_switch_sync;
+		wire [4:0] recipe_select = SW[4:0];
 
-        always @(posedge CLOCK_50) begin
-            if (!Resetn)
-                craft_switch_sync <= 3'b000;
-            else
-                craft_switch_sync <= {craft_switch_sync, SW[8]};
-        end
+		wire [17:0] available_recipes;
+	  wire [44:0] slot_items;
+	  wire [62:0] slot_counts;
+	  wire [4:0] held_item = slot_items[held_slot*5 +: 5];
+	  wire [6:0] held_count = slot_counts[held_slot*7 +: 7];
+	  wire pickup_accepted, craft_accepted;
+	  wire [4:0] preview_item, preview_ingredient;
+	  wire [6:0] preview_count;
 
-        wire craft_pulse = crafting_mode && craft_switch_sync[1] && !craft_switch_sync[2];
-
-        wire [17:0] available_recipes;
-        wire [44:0] slot_items;
-        wire [62:0] slot_counts;
-		  wire [4:0] held_item = slot_items[held_slot*5 +: 5];
-		  wire [6:0] held_count = slot_counts[held_slot*7 +: 7];
-        wire pickup_accepted, craft_accepted;
-        wire [4:0] preview_item, preview_ingredient;
-        wire [6:0] preview_count;
-
-        crafting_inventory INVENTORY (
-            .clk(CLOCK_50), .resetn(Resetn),
-            .recipe_select(recipe_select), .craft_pulse(craft_pulse),
-            .pickup_pulse(pickup_from_mining),
-            .pickup_item(mined_item), .pickup_count(7'd1),
-				.place_pulse(place_from_hotbar), .place_slot(held_slot),
-				.pickup_can_fit(pickup_can_fit),
-            .pickup_accepted(pickup_accepted), .craft_accepted(craft_accepted),
-            .available_recipes(available_recipes),
-            .slot_items(slot_items), .slot_counts(slot_counts),
-            .preview_item(preview_item), .preview_count(preview_count),
-            .preview_cell(4'd0), .preview_ingredient(preview_ingredient)
-        );
+	  crafting_inventory INVENTORY (
+			.clk(CLOCK_50), .resetn(Resetn),
+			.recipe_select(recipe_select), .craft_pulse(craft_pulse),
+			.pickup_pulse(pickup_from_mining),
+			.pickup_item(mined_item), .pickup_count(7'd1),
+			.place_pulse(place_from_hotbar), .place_slot(held_slot),
+			.pickup_can_fit(pickup_can_fit),
+			.pickup_accepted(pickup_accepted), .craft_accepted(craft_accepted),
+			.available_recipes(available_recipes),
+			.slot_items(slot_items), .slot_counts(slot_counts),
+			.preview_item(preview_item), .preview_count(preview_count),
+			.preview_cell(4'd0), .preview_ingredient(preview_ingredient)
+	  );
 		  
 		reg [4:0] mined_item;
 		
@@ -422,7 +457,61 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		
 		wire pickup_from_mining = mined_block_pulse && (mined_item != 5'd0);
 		
-		wire [3:0] held_tool_strength = 4'd1; // hand
+		reg [3:0] held_tool_strength;
+
+		always @(*) begin
+
+			 // hand or wrong tool
+			 held_tool_strength = 4'd1;
+
+			 if (held_count != 7'd0) begin
+
+				  case (selected_block)
+
+						// PICKAXE: stone, cobblestone, iron ore, diamond ore
+						4'd3, 4'd4, 4'd8, 4'd9: begin
+
+							 case (held_item)
+								  5'd7:  held_tool_strength = 4'd2; // wooden pick
+								  5'd11: held_tool_strength = 4'd4; // stone pick
+								  5'd15: held_tool_strength = 4'd6; // iron pick
+								  5'd19: held_tool_strength = 4'd8; // diamond pick
+								  default: held_tool_strength = 4'd1;
+							 endcase
+
+						end
+
+						// AXE: logs, planks
+						4'd5, 4'd6: begin
+
+							 case (held_item)
+								  5'd8:  held_tool_strength = 4'd2; // wooden axe
+								  5'd12: held_tool_strength = 4'd4; // stone axe
+								  5'd16: held_tool_strength = 4'd6; // iron axe
+								  5'd20: held_tool_strength = 4'd8; // diamond axe
+								  default: held_tool_strength = 4'd1;
+							 endcase
+
+						end
+
+						// SHOVEL: grass, dirt
+						4'd1, 4'd2: begin
+
+							 case (held_item)
+								  5'd9:  held_tool_strength = 4'd2; // wooden shovel
+								  5'd13: held_tool_strength = 4'd4; // stone shovel
+								  5'd17: held_tool_strength = 4'd6; // iron shovel
+								  5'd21: held_tool_strength = 4'd8; // diamond shovel
+								  default: held_tool_strength = 4'd1;
+							 endcase
+
+						end
+
+						default: held_tool_strength = 4'd1;
+
+				  endcase
+			 end
+		end
 		reg [3:0] held_place_block; // stone
 		
 		always @(*) begin
@@ -874,7 +963,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     hex7seg H2 (Serial[15:12], HEX2);
     hex7seg H3 (Serial[19:16], HEX3);
     hex7seg H4 (Serial[26:23], HEX4);
-    hex7seg H5 (SW[9] ? selected_block : Serial[30:27], HEX5); // temporary, displays if selected block is right
+    hex7seg H5 (crafting_mode ? selected_block : Serial[30:27], HEX5); // temporary, displays if selected block is right
 
     // connect to VGA controller
     vga_adapter VGA (
