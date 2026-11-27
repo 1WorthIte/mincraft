@@ -6,6 +6,9 @@ module crafting_inventory (
     input wire pickup_pulse,
     input wire [4:0] pickup_item,
     input wire [6:0] pickup_count,
+	 input wire place_pulse,
+	 input wire [3:0] place_slot,
+	 
 	 output wire pickup_can_fit,
     output reg pickup_accepted,
     output reg craft_accepted,
@@ -245,7 +248,8 @@ module crafting_inventory (
                 commit = 1'b1;
 
         end
-
+		  
+		  // PICKUP
         else if (pickup_pulse && pickup_item != 5'd0 && pickup_count != 7'd0) begin
             remaining = pickup_count;
 
@@ -295,6 +299,22 @@ module crafting_inventory (
             if (remaining == 0)
                 commit = 1'b1;
         end
+		  
+		  // PLACING
+		  else if (place_pulse && place_slot < 4'd9) begin
+		  
+				if (next_item[place_slot] != 5'd0 && next_count[place_slot] != 7'd0) begin
+					if (next_count[place_slot] == 7'd1) begin
+						next_item[place_slot] = 5'd0;
+						next_count[place_slot] = 7'd0;
+					end
+					else begin
+						next_count[place_slot] = next_count[place_slot] - 7'd1;
+					end
+					
+					commit = 1'b1;
+				end
+		  end
     end
 
     integer i;

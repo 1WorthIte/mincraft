@@ -1,13 +1,14 @@
 `default_nettype none
 
-// Draws nine 32x32 item icons at (318 + 36*slot, 4).
-// Empty slots are repainted from the original HUD background.
+// draws nine 32x32 item icons at (318 + (32 + 4)*slot, 4).
 module hotbar_ui (
     input wire clk,
     input wire resetn,
     input wire start,
     input wire grant,
     input wire [44:0] slot_items,
+	 input wire [3:0] selected_slot,
+	 
     output reg busy,
     output wire [9:0] VGA_x,
     output wire [8:0] VGA_y,
@@ -19,6 +20,7 @@ module hotbar_ui (
     localparam [9:0] ICON_PITCH = 10'd36;
 
     reg [44:0] latched_items;
+	 reg [3:0] latched_selected_slot;
     reg [3:0] slot_index;
     reg [9:0] pixel_index;
 
@@ -28,8 +30,6 @@ module hotbar_ui (
     wire [8:0] draw_y = FIRST_ICON_Y + {4'd0, icon_y};
     wire [4:0] current_item = latched_items[slot_index*5 +: 5];
 
-    // Reuse the same 4x4-compressed background palette as background_restore.v.
-    // This clears an icon without damaging the original hotbar artwork.
     reg [2:0] background_palette [0:6399];
     initial $readmemh("./MIF/background_top_4x4.hex", background_palette);
     wire [5:0] background_row = draw_y[7:2];
@@ -208,6 +208,9 @@ module hotbar_ui (
     reg [8:0] delayed_y;
     reg [4:0] delayed_item;
     reg delayed_write;
+	 reg delayed_selected_border;
+	 
+	 wire selected_border = (slot_index == latched_selected_slot) && (icon_x <= 5'd1 || icon_x >= 5'd30 || icon_y <= 5'd1 || icon_y >= 5'd30);
 
     always @(posedge clk) begin
         if (!resetn) begin
@@ -219,7 +222,9 @@ module hotbar_ui (
             delayed_y <= 9'd0;
             delayed_item <= 5'd0;
             delayed_write <= 1'b0;
+				delayed_selected_border <= selected_border;
             background_index <= 3'd0;
+				latched_selected_slot <= 4'd0;
         end else begin
             background_index <= background_palette[background_address];
             delayed_x <= draw_x;
@@ -230,6 +235,7 @@ module hotbar_ui (
             if (!busy) begin
                 if (start && grant) begin
                     latched_items <= slot_items;
+						  latched_selected_slot <= selected_slot;
                     slot_index <= 4'd0;
                     pixel_index <= 10'd0;
                     busy <= 1'b1;
@@ -289,7 +295,7 @@ module hotbar_ui (
 
     assign VGA_x = delayed_x;
     assign VGA_y = delayed_y;
-    assign VGA_color = (delayed_item == 5'd0) ? background_color : sprite_color;
+    assign VGA_color = delayed_selected_border ? 9'b111_111_000 : (delayed_item == 5'd0) ? background_color : sprite_color;
     assign VGA_write = delayed_write;
 endmodule
 

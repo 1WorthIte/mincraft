@@ -56,7 +56,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     reg [17:0] key1_debounce;
     always @(posedge CLOCK_50) begin
         if (!Resetn) begin
-            show_outlines <= 1'b1;
+            show_outlines <= 1'b0;
             key1_sync <= 2'b11;
             key1_prev <= 1'b1;
             key1_debounce <= 18'd0;
@@ -151,6 +151,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 	 reg jump_down;
 	 reg break_down;
 	 reg place_down;
+	 reg [3:0] held_slot;
 	 
 	 reg up_arrow_down;
 	 reg down_arrow_down;
@@ -169,6 +170,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			
 			break_down <= 1'b0;
 			place_down <= 1'b0;
+			held_slot <= 4'd0;
 			
 			up_arrow_down <= 1'b0;
 			down_arrow_down <= 1'b0;
@@ -215,6 +217,16 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 					
 						8'h32: break_down <= !release_pending; // B
 						8'h4D: place_down <= !release_pending; // P
+						
+						8'h16: if (!release_pending) held_slot <= 4'd0; // 1
+						8'h1E: if (!release_pending) held_slot <= 4'd0; // 2
+						8'h26: if (!release_pending) held_slot <= 4'd0; // 3
+						8'h25: if (!release_pending) held_slot <= 4'd0; // 4
+						8'h2E: if (!release_pending) held_slot <= 4'd0; // 5
+						8'h36: if (!release_pending) held_slot <= 4'd0; // 6
+						8'h3D: if (!release_pending) held_slot <= 4'd0; // 7
+						8'h3E: if (!release_pending) held_slot <= 4'd0; // 8
+						8'h46: if (!release_pending) held_slot <= 4'd0; // 9
 					
 						default: ;
 					endcase
@@ -366,6 +378,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         wire [17:0] available_recipes;
         wire [44:0] slot_items;
         wire [62:0] slot_counts;
+		  wire [4:0] held_item = slot_items[held_slot*5 +: 5];
+		  wire [6:0] held_count = slot_counts[held_slot*7 +: 7];
         wire pickup_accepted, craft_accepted;
         wire [4:0] preview_item, preview_ingredient;
         wire [6:0] preview_count;
@@ -375,6 +389,7 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
             .recipe_select(recipe_select), .craft_pulse(craft_pulse),
             .pickup_pulse(pickup_from_mining),
             .pickup_item(mined_item), .pickup_count(7'd1),
+				.place_pulse(place_from_hotbar), .place_slot(held_slot),
 				.pickup_can_fit(pickup_can_fit),
             .pickup_accepted(pickup_accepted), .craft_accepted(craft_accepted),
             .available_recipes(available_recipes),
@@ -403,10 +418,28 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		
 		wire mined_block_pulse = map_write_enable && (map_write_block == 4'd0);
 		
+		wire place_from_hotbar = map_write_enable && (map_write_block != 4'd0);
+		
 		wire pickup_from_mining = mined_block_pulse && (mined_item != 5'd0);
 		
 		wire [3:0] held_tool_strength = 4'd1; // hand
-		wire [3:0] held_place_block = 4'd3; // stone
+		reg [3:0] held_place_block; // stone
+		
+		always @(*) begin
+			held_place_block = 4'd0;
+			
+			if (held_count != 7'd0) begin
+				case (held_item)
+					5'd1: held_place_block = 4'd5; // log
+					5'd2: held_place_block = 4'd6; // planks
+					5'd4: held_place_block = 4'd4; // cobble
+					5'd5: held_place_block = 4'd8; // iron ore
+					5'd6: held_place_block = 4'd9; // diamond ore
+					5'd23: held_place_block = 4'd2; // dirt
+					default: held_place_block = 4'd0;
+				endcase
+			end
+		end
 		
 		block_interaction INTERACTION (
 		
@@ -688,8 +721,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 			frame_x <= 10'd0;
 			frame_y <= 9'd0;
 			frame_selection <= 4'd0;
-            drawn_outlines <= 1'b1;
-            frame_outlines <= 1'b1;
+            drawn_outlines <= 1'b0;
+            frame_outlines <= 1'b0;
 			drawn_valid <= 1'b0;
 			sprite_dirty <= 1'b0;
 			world_dirty <= 1'b0;
@@ -756,30 +789,82 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
     wire [9:0] BAR_x;
     wire [8:0] BAR_y, BAR_color;
     wire BAR_write;
-    wire bar_grant = world_done && S_done && !refresh_busy && !UI_busy;
+    wire bar_grant = world_done && S_done && !refresh_busy && !UI_busy && !HOT_write && !HOT_busy;
+	 
+	 
+	 wire [9:0] HOT_x;
+    wire [8:0] HOT_y, HOT_color;
+    wire HOT_write;
+	 wire HOT_busy;
+	 
     mining_bar BAR (
         .clk(CLOCK_50), .resetn(Resetn), .grant(bar_grant),
         .active(mining_active), .progress(mining_progress),
         .required(mining_required),
         .x(BAR_x), .y(BAR_y), .color(BAR_color), .write(BAR_write)
     );
+	 
+	 always @(posedge CLOCK_50) begin
+		
+		if (!Resetn) begin
+			hotbar_drawn <= 1'b0;
+			hotbar_drawn_items <= 45'd0;
+			hotbar_drawn_slot <= 4'd0;
+		end
+		
+		else if (crafting_mode || restoration_active || crafting_closed) begin
+			hotbar_drawn <= 1'b0;
+		end
+		else if (HOT_start) begin
+			hotbar_drawn <= 1'b1;
+			hotbar_drawn_items <= slot_items;
+			hotbar_drawn_slot <= held_slot;
+		end
+	end
+	
+	hotbar_ui HOTBAR (
+		
+		.clk(CLOCK_50),
+		.resetn(Resetn && !crafting_mode && !restoration_active),
+		
+		.start(HOT_start),
+		.grant(hotbar_grant),
+		.slot_items(slot_items),
+		.selected_slot(held_slot),
+		
+		.busy(HOT_busy),
+		
+		.VGA_x(HOT_x),
+		.VGA_y(HOT_y),
+		.VGA_color(HOT_color),
+		.VGA_write(HOT_write)
+	);
+
+	 reg hotbar_drawn;
+	 reg [44:0] hotbar_drawn_items;
+	 reg [3:0] hotbar_drawn_slot;
+	 wire hotbar_redraw_needed = !hotbar_drawn || (hotbar_drawn_items != slot_items) || (hotbar_drawn_slot != held_slot);
+	 wire hotbar_grant = world_done && S_done && !refresh_busy && !UI_busy && !BAR_write && !crafting_mode && !restoration_active && !crafting_closed;
+	 wire HOT_start = hotbar_grant && !HOT_busy && hotbar_redraw_needed;
+	 
 	assign MUX_x = crafting_mode ? CRAFT_x :
                    restoring_top ? REST_x :
                    restoration_active ? W_x :
-                   BAR_write ? BAR_x : UI_busy ? UI_x : world_done ? S_x : W_x;
+                   BAR_write ? BAR_x : HOT_write ? HOT_x : UI_busy ? UI_x : world_done ? S_x : W_x;
 	assign MUX_y = crafting_mode ? CRAFT_y :
                    restoring_top ? REST_y :
                    restoration_active ? W_y :
-                   BAR_write ? BAR_y : UI_busy ? UI_y : world_done ? S_y : W_y;
+                   BAR_write ? BAR_y : HOT_write ? HOT_y : UI_busy ? UI_y : world_done ? S_y : W_y;
 	assign MUX_color = crafting_mode ? CRAFT_color :
                        restoring_top ? REST_color :
                        restoration_active ? W_color :
-                       BAR_write ? BAR_color : UI_busy ? UI_color : world_done ? S_color : W_color;
+                       BAR_write ? BAR_color : HOT_write ? HOT_color : UI_busy ? UI_color : world_done ? S_color : W_color;
 	assign MUX_write = crafting_mode ? CRAFT_write :
                        restoring_top ? REST_write :
                        restoration_active ? (W_write && W_y >= 9'd160) :
                        BAR_write ? 1'b1 :
-                       UI_busy ? (UI_write && UI_y >= 9'd160) :
+                       HOT_write ? 1'b1 : 
+							  UI_busy ? (UI_write && UI_y >= 9'd160) :
                        world_done ? (S_write && S_y >= 9'd160) :
                                     (W_write && W_y >= 9'd160); // Preserve the upper HUD during normal gameplay.
 	 
