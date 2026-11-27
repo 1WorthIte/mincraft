@@ -281,7 +281,8 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
 		defparam UKU.n = 1;
 		
     // assign LEDR = SW[9] ? {target_valid, selected_col, selected_row} : {2'b0, scancode}; // temporary SW testing
-	 assign LEDR = {refresh_state, UI_busy, S_done, world_done, tile_redraw_done, refresh_busy, refresh_pending};
+	 // assign LEDR = {refresh_state, UI_busy, S_done, world_done, tile_redraw_done, refresh_busy, refresh_pending};
+	 assign LEDR = {slot_counts[4:0], slot_items[4:0]};
 	 
     // FSM state table
     always @ (*)
@@ -350,16 +351,17 @@ module vga_demo(CLOCK_50, SW, KEY, LEDR, PS2_CLK, PS2_DAT, HEX5, HEX4, HEX3, HEX
         // =============================================================
         wire crafting_mode = SW[9];
         wire [4:0] recipe_select = SW[4:0];
-        reg craft_switch_previous;
+		  
+        reg [2:0] craft_switch_sync;
 
         always @(posedge CLOCK_50) begin
             if (!Resetn)
-                craft_switch_previous <= 1'b0;
+                craft_switch_sync <= 3'b000;
             else
-                craft_switch_previous <= SW[8];
+                craft_switch_sync <= {craft_switch_sync, SW[8]};
         end
 
-        wire craft_pulse = crafting_mode && SW[8] && !craft_switch_previous;
+        wire craft_pulse = crafting_mode && craft_switch_sync[1] && !craft_switch_sync[2];
 
         wire [17:0] available_recipes;
         wire [44:0] slot_items;

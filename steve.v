@@ -59,13 +59,13 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
 	 
 	 // ADD OUTLINE AROUND STEVE:
 	 
-		wire outline;
-		wire outline_d;
+		// wire outline;
+		// wire outline_d;
 		
-		assign outline = (XC == 5'd0) ||   // left edge
-							  (XC == 5'd31) ||  // right edge
-							  (YC == 6'd0) ||   // top edge
-							  (YC == 6'd63);    // bottom edge
+		// assign outline = (XC == 5'd0) ||   // left edge
+		// 					  (XC == 5'd31) ||  // right edge
+		// 					  (YC == 6'd0) ||   // top edge
+		// 					  (YC == 6'd63);    // bottom edge
 							  
 	 // selection:
 	 
@@ -261,19 +261,18 @@ module steve (Resetn, Clock, go, step, scancode, key_up, VGA_x, VGA_y, VGA_color
         defparam UW.n = 1;
     regn UE (erase, Resetn, 1'b1, Clock, erase_d);
         defparam UE.n = 1;
-	 regn UO (outline, Resetn, 1'b1, Clock, outline_d);
-		  defparam UO.n = 1;
+	 // regn UO (outline, Resetn, 1'b1, Clock, outline_d);
+		  // defparam UO.n = 1;
 
 	 // erase paints sky colour
     // only touch pixels that are part of Steve (erase uses the OLD pose, since update
     // happens after the erase, so this erases exactly the old outline)
 	 
     assign VGA_color = erase_d ? SKY :      // erasing old pos steve
-							  outline_d ? 9'h000:  // drawing outline pixel
 							  obj_color;           // original sprite color otherwise
 	 
 	 
-    assign VGA_write = write_d && (outline_d || (obj_color != TRANSPARENT));
+    assign VGA_write = write_d && (obj_color != TRANSPARENT);
 
 endmodule
 
